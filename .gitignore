@@ -97,3 +97,10 @@ Thumbs.db
 # Ignore built ts files
 __tests__/runner/*
 lib/**/*
+
+# Intellij and VSCode files
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
