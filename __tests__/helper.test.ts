@@ -1,6 +1,6 @@
-import {expect} from "@jest/globals";
 import * as fs from 'fs';
 import * as helper from '../src/helper';
+import {expect} from '@jest/globals';
 
 const samples_dir = './__tests__/samples';
 const good_samples_dir = `${samples_dir}/good`;
