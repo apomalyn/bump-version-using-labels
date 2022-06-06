@@ -1,4 +1,4 @@
-import {SemanticVersion} from '../../src/models/SemanticVersion';
+import {SemanticVersion} from '../../src/models/semantic-version';
 import {expect} from '@jest/globals';
 
 const good_samples = [

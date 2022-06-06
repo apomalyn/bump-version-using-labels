@@ -21,6 +21,14 @@ inputs:
   file_path:
     description: Path to the file that contains the version. The file should be a YAML or a JSON file
     required: true
+  use_tag_as_ref:
+    description: Use the tags of the repository to determine the latest version.
+    default: 'false'
+    required: true
+  reference_branch:
+    description: Use the specified branch to determine the latest version used. Ignored if `use_tag_as_ref` is true.
+    default: 'main'
+    required: false
 
   comment:
     description: Comment the pull request when the version is update. Set to `false` to disable.

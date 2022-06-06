@@ -5,16 +5,14 @@
 //
 // NOTE: We differ here in that we allow X and X.Y, with missing parts having the default
 // value of `0`.
+import { VersionType } from './version-type';
+
 const versionRegExp =
   /^(0|[1-9]\d*)(?:\.(0|[1-9]\d*)(?:\.(0|[1-9]\d*)(?:-([a-z0-9-.]+))?(?:\+([a-z0-9-.]+))?)?)?$/i;
 
 export class SemanticVersion {
-  readonly major!: number;
-  readonly minor!: number;
-  readonly patch!: number;
   readonly prerelease: string = '';
   readonly build: string = '';
-  readonly raw!: string;
 
   constructor(
     major: number,
@@ -23,12 +21,29 @@ export class SemanticVersion {
     pre_release = '',
     build = ''
   ) {
-    this.major = major;
-    this.minor = minor;
-    this.patch = patch;
+    this._major = major;
+    this._minor = minor;
+    this._patch = patch;
     this.prerelease = pre_release;
     this.build = build;
-    this.raw = `${major}.${minor}.${patch}-${pre_release}+${build}`;
+  }
+
+  private _major!: number;
+
+  get major(): number {
+    return this._major;
+  }
+
+  private _minor!: number;
+
+  get minor(): number {
+    return this._minor;
+  }
+
+  private _patch!: number;
+
+  get patch(): number {
+    return this._patch;
   }
 
   static fromString(text: string): SemanticVersion {
@@ -45,5 +60,40 @@ export class SemanticVersion {
       prerelease,
       build
     );
+  }
+
+  get raw(): string {
+    return `${this._major}.${this._minor}.${this._patch}${
+      this.prerelease.length > 0 ? `-${this.prerelease}` : ''
+    }${this.build.length > 0 ? `+${this.build}` : ''}`;
+  }
+
+  increase(versionType: VersionType): void {
+    switch (versionType) {
+      case VersionType.MAJOR:
+        this.increaseMajor();
+        break;
+      case VersionType.MINOR:
+        this.increaseMinor();
+        break;
+      case VersionType.PATCH:
+        this.increasePath();
+        break;
+    }
+  }
+
+  increaseMajor(): void {
+    this._major += 1;
+    this._minor = 0;
+    this._patch = 0;
+  }
+
+  increaseMinor(): void {
+    this._minor += 1;
+    this._patch = 0;
+  }
+
+  increasePath(): void {
+    this._patch += 1;
   }
 }
