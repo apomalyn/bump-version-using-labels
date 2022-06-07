@@ -86,14 +86,13 @@ export default class GithubService {
     branch_name?: string | undefined
   ): Promise<void> {
     const file_content = helper.loadFile(file_path, false) as string;
-    core.debug('Start commit process');
+    core.info('Start commit process');
     const blob = await this._octokit.rest.git.createBlob({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       content: file_content,
       encoding: 'utf8'
     });
-    core.debug(`Blob with file ${file_path} created`);
     const current_commit_sha = this._eventPayload.pull_request.head.sha;
     core.debug(`Last commit sha: ${current_commit_sha}`);
     const tree = await this._octokit.rest.git.createTree({
@@ -109,7 +108,6 @@ export default class GithubService {
       ],
       base_tree: await this.getTreeShaForCommit(current_commit_sha)
     });
-    core.debug(`New tree created`);
 
     if (author === undefined) {
       author = {
@@ -135,7 +133,7 @@ export default class GithubService {
       ref: `heads/${branch_name ?? this._eventPayload.pull_request.head.ref}`,
       sha: commit.data.sha
     });
-    core.debug(`Commit pushed!`);
+    core.info(`Commit pushed! (sha: ${commit.data.sha})`);
   }
 
   async getTreeShaForCommit(sha: string): Promise<string> {

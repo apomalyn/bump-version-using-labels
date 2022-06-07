@@ -95,8 +95,8 @@ async function run(): Promise<void> {
         file_path,
         core.getInput('commit_message'),
         {
-          name: core.getInput('commit_author_name'),
-          email: core.getInput('commit_author_email')
+          name: core.getInput('commit_user_name'),
+          email: core.getInput('commit_user_email')
         }
       );
       if (comment_pr) {
