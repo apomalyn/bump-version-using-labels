@@ -178,7 +178,6 @@ async function getRefVersionFromTag(): Promise<SemanticVersion | undefined> {
     return SemanticVersion.fromString(tags_list[0].name);
   } catch (e) {
     if (e instanceof Error) {
-      core.debug(`Retrieving tag list failed, status code: ${e.message}`);
       core.setFailed(`No tags found on the repository`);
       throw e;
     }
