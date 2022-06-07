@@ -19,12 +19,17 @@ jobs:
           npm install
       - run: |
           npm run build
-      - uses: ./
+      - name: Use main branch as reference
+        uses: ./
         with:
           file_path: 'package.json'
           minor_label: 'Increase: minor version'
           comment: true
-      - uses: ./
+      - name: Reset files
+        run: |
+          git checkout -- package.json
+      - name: Use tags as reference
+        uses: ./
         with:
           file_path: 'package.json'
           minor_label: 'Increase: minor version'
