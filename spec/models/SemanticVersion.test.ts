@@ -1,5 +1,5 @@
-import {SemanticVersion} from '../../src/models/semantic-version';
-import {expect} from '@jest/globals';
+import { SemanticVersion } from '../../src/models/semantic-version';
+import { expect } from '@jest/globals';
 
 const good_samples = [
   {
@@ -46,7 +46,9 @@ describe('Constructor', () => {
   test('BAD', () => {
     for (const sample of bad_samples) {
       console.log(`Testing ${sample}`);
-      expect(() => SemanticVersion.fromString(sample)).toThrowError(SyntaxError);
+      expect(() => SemanticVersion.fromString(sample)).toThrowError(
+        SyntaxError
+      );
     }
   });
 });

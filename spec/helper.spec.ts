@@ -84,7 +84,9 @@ describe('Helper', () => {
       helper.writeFile(file_path, content);
 
       expect(fs.existsSync(file_path)).toBeTruthy();
-      expect(JSON.parse(fs.readFileSync(file_path, 'utf8'))).toStrictEqual(content);
+      expect(JSON.parse(fs.readFileSync(file_path, 'utf8'))).toStrictEqual(
+        content
+      );
     });
 
     test("Should fail if the file isn't JSON or YAML", () => {

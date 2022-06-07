@@ -29,6 +29,10 @@ jobs:
     if: ${{ github.event_name == 'pull_request' }}
     steps:
       - uses: actions/checkout@v3
+      - run: |
+          npm install
+      - run: |
+          npm run build
       - uses: ./
         with:
           file_path: 'packag.json'

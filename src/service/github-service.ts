@@ -1,20 +1,21 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as helper from '../helper';
+// eslint-disable-next-line import/no-unresolved
 import { Label, PullRequestEvent } from '@octokit/webhooks-definitions/schema';
 import IGithubGetContentPayload from '../models/igithub-get-content-payload';
 import ITagPayload from '../models/igithub-tag-payload';
 
 export default class GithubService {
-  public readonly eventPayload: PullRequestEvent;
+  private readonly _eventPayload: PullRequestEvent;
   private _octokit = helper.getOctokitAuth();
 
   constructor() {
-    this.eventPayload = github.context.payload as PullRequestEvent;
+    this._eventPayload = github.context.payload as PullRequestEvent;
   }
 
   get labels(): Label[] {
-    return this.eventPayload.pull_request.labels;
+    return this._eventPayload.pull_request.labels;
   }
 
   /**
@@ -24,7 +25,7 @@ export default class GithubService {
     await this._octokit.rest.issues.createComment({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
-      issue_number: this.eventPayload.pull_request.number,
+      issue_number: this._eventPayload.pull_request.number,
       body: message
     });
   }
