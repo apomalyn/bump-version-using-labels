@@ -1,24 +1,39 @@
-name: 'build-test'
+name: 'test'
 on: # rebuild any PRs and main branch changes
   pull_request:
-  push:
-    branches:
-      - main
-      - 'releases/*'
-
+    types:
+      - unlabeled
+      - labeled
+      - synchronize
+      - opened
+      - reopened
 jobs:
-  build: # make sure build/ci work properly
+  test: # make sure the action works on a clean machine
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
       - run: |
           npm install
       - run: |
-          npm run all
-  test: # make sure the action works on a clean machine without building
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./
+          npm run build
+          npm run package
+      - name: Use tags as reference
+        uses: ./
         with:
-          milliseconds: 1000
+          file_path: 'package.json'
+          minor_label: 'Increase: minor version'
+          use_tag_as_ref: true
+          comment: false
+          commit: false
+      - name: Reset files
+        run: |
+          git checkout -- package.json
+      - name: Use main branch as reference
+        uses: ./
+        with:
+          file_path: 'package.json'
+          minor_label: 'Increase: minor version'
+          comment: true

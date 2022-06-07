@@ -1,11 +1,70 @@
-name: 'Your name here'
+name: 'Bump version using labels'
 description: 'Provide a description here'
-author: 'Your name or organization here'
+author: 'Xavier Chretien'
 inputs:
-  milliseconds: # change this
+  patch_label:
+    description: Label used to update the minor version (x.x.PATCH)
+    default: 'version: Patch'
+    required: false
+  minor_label:
+    description: Label used to update the minor version (x.MINOR.0)
+    default: 'version: Minor'
+    required: false
+  major_label:
+    description: Label used to update the minor version (MAJOR.0.0)
+    default: 'version: Major'
+    required: false
+  look_for_key:
+    description: Key in the file that contains the version.
+    default: 'version'
+    required: false
+  file_path:
+    description: Path to the file that contains the version. The file should be a YAML or a JSON file
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+  use_tag_as_ref:
+    description: Use the tags of the repository to determine the latest version.
+    default: 'false'
+    required: false
+  reference_branch:
+    description: Use the specified branch to determine the latest version used. Ignored if `use_tag_as_ref` is true.
+    default: 'main'
+    required: false
+
+  comment:
+    description: Comment the pull request when the version is update or when there is an error. Set to `false` to disable.
+    default: 'true'
+    required: false
+  comment_message:
+    description: Message used for the comment. You can use '{old}' and '{new}' to display the ancient and new version. Ignored if `comment` is false.
+    default: 'Bump version from {old} to {new}'
+    required: false
+
+  commit:
+    description: Commit the changed file. Set to `false` to disable.
+    default: 'true'
+    required: false
+  commit_message:
+    description: Message used for the commit. You can use '{old}' and '{new}' to display the ancient and new version. Ignored if `commit` is false.
+    default: '[BOT] Bump version from {old} to {new}'
+    required: false
+  commit_user_name:
+    description: Name used for the commit user. Ignored if `commit` is false.
+    default: 'github-actions[bot]'
+    required: false
+  commit_user_email:
+    description: Email address used for the commit user. Ignored if `commit` is false.
+    default: 'github-actions[bot]@users.noreply.github.com'
+    required: false
+
+  json_spacing:
+    description: Set the spacing-level of the JSON. Only used if the file to update is a json.
+    default: '2'
+    required: false
+
+outputs:
+  version:
+    description: Current/Updated version.
+
 runs:
   using: 'node16'
   main: 'dist/index.js'
