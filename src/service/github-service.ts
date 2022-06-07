@@ -114,7 +114,7 @@ export default class GithubService {
     if (author === undefined) {
       author = {
         name: github.context.actor,
-        email: `${github.context.actor}@users.noreply.github.com>`
+        email: `${github.context.actor}@users.noreply.github.com`
       };
     }
 

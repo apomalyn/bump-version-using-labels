@@ -56,6 +56,11 @@ inputs:
     default: 'actions@github.com'
     required: false
 
+  json_spacing:
+    description: Set the spacing-level of the JSON. Only used if the file to update is a json.
+    default: '2'
+    required: false
+
 outputs:
   version:
     description: Current/Updated version.

@@ -48,10 +48,14 @@ export function parseFile(file_name: string, file_content: string): Object {
  * Write the file content in the file specified.
  * Throw an error if the file is something else than a JSON or YAML file.
  */
-export function writeFile(file_path: string, file_content: Object): void {
+export function writeFile(
+  file_path: string,
+  file_content: Object,
+  json_spacing = 2
+): void {
   let content: string;
   if (file_path.endsWith('.json')) {
-    content = JSON.stringify(file_content);
+    content = JSON.stringify(file_content, undefined, json_spacing);
   } else if (file_path.endsWith('.yaml') || file_path.endsWith('.yml')) {
     content = YAML.stringify(file_content);
   } else {

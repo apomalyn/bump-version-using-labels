@@ -88,16 +88,7 @@ async function run(): Promise<void> {
       value: reference_version.raw
     });
 
-    writeFile(file_path, content);
-
-    if (comment_pr) {
-      await github_service.createComment(
-        core
-          .getInput('comment_message')
-          .replace(OLD_TAG, version.raw)
-          .replace(NEW_TAG, reference_version.raw)
-      );
-    }
+    writeFile(file_path, content, Number(core.getInput('json_spacing')));
 
     if (commit_pr) {
       await github_service.commitFile(
@@ -108,6 +99,14 @@ async function run(): Promise<void> {
           email: core.getInput('commit_author_email')
         }
       );
+      if (comment_pr) {
+        await github_service.createComment(
+          core
+            .getInput('comment_message')
+            .replace(OLD_TAG, version.raw)
+            .replace(NEW_TAG, reference_version.raw)
+        );
+      }
     }
 
     core.setOutput('version', reference_version.raw);
