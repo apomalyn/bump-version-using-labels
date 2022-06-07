@@ -19,6 +19,7 @@ jobs:
           npm install
       - run: |
           npm run build
+          npm run package
       - name: Use main branch as reference
         uses: ./
         with:
