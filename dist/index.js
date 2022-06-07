@@ -424,10 +424,10 @@ const helper = __importStar(__nccwpck_require__(3947));
 class GithubService {
     constructor() {
         this._octokit = helper.getOctokitAuth();
-        this.eventPayload = github.context.payload;
+        this._eventPayload = github.context.payload;
     }
     get labels() {
-        return this.eventPayload.pull_request.labels;
+        return this._eventPayload.pull_request.labels;
     }
     /**
      * Create a comment on the pull request.
@@ -437,7 +437,7 @@ class GithubService {
             yield this._octokit.rest.issues.createComment({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
-                issue_number: this.eventPayload.pull_request.number,
+                issue_number: this._eventPayload.pull_request.number,
                 body: message
             });
         });

@@ -24,7 +24,7 @@ jobs:
           commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
           commit_message: "[BOT] Update dist folder."
           add_options: '-u'
-  test: # make sure the action works on a clean machine without building
+  test: # make sure the action works on a clean machine
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request' }}
     steps:
