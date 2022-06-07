@@ -47,11 +47,11 @@ inputs:
     description: Message used for the commit. You can use '{old}' and '{new}' to display the ancient and new version. Ignored if `commit` is false.
     default: '[BOT] Bump version from {old} to {new}'
     required: false
-  commit_author_name:
+  commit_user_name:
     description: Name used for the commit user. Ignored if `commit` is false.
-    default: 'GitHub Actions'
+    default: 'github-actions[bot]'
     required: false
-  commit_author_email:
+  commit_user_email:
     description: Email address used for the commit user. Ignored if `commit` is false.
     default: 'actions@github.com'
     required: false

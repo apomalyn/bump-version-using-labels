@@ -81,7 +81,8 @@ export default class GithubService {
   async commitFile(
     file_path: string,
     commit_message: string,
-    author: { name: string; email: string },
+    committer: { name: string; email: string },
+    author?: { name: string; email: string },
     branch_name?: string | undefined
   ): Promise<void> {
     const file_content = helper.loadFile(file_path, false) as string;
@@ -110,12 +111,20 @@ export default class GithubService {
     });
     core.debug(`New tree created`);
 
+    if (author === undefined) {
+      author = {
+        name: github.context.actor,
+        email: `${github.context.actor}@users.noreply.github.com>`
+      };
+    }
+
     const commit = await this._octokit.rest.git.createCommit({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       message: commit_message,
       tree: tree.data.sha,
       parents: [current_commit_sha],
+      committer,
       author
     });
     core.debug(`New commit created, sha: ${commit.data.sha}`);
