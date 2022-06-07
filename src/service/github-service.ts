@@ -77,4 +77,65 @@ export default class GithubService {
 
     return tags_list_response.data as ITagPayload[];
   }
+
+  async commitFile(
+    file_path: string,
+    commit_message: string,
+    author: { name: string; email: string },
+    branch_name?: string | undefined
+  ): Promise<void> {
+    const file_content = helper.loadFile(file_path, false) as string;
+    core.debug('Start commit process');
+    const blob = await this._octokit.rest.git.createBlob({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      content: file_content,
+      encoding: 'utf8'
+    });
+    core.debug(`Blob with file ${file_path} created`);
+    const current_commit_sha = this._eventPayload.pull_request.head.sha;
+    core.debug(`Last commit sha: ${current_commit_sha}`);
+    const tree = await this._octokit.rest.git.createTree({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      tree: [
+        {
+          path: file_path,
+          mode: `100644`,
+          type: `blob`,
+          sha: blob.data.sha
+        }
+      ],
+      base_tree: await this.getTreeShaForCommit(current_commit_sha)
+    });
+    core.debug(`New tree created`);
+
+    const commit = await this._octokit.rest.git.createCommit({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      message: commit_message,
+      tree: tree.data.sha,
+      parents: [current_commit_sha],
+      author
+    });
+    core.debug(`New commit created, sha: ${commit.data.sha}`);
+
+    await this._octokit.rest.git.updateRef({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      ref: `heads/${branch_name ?? this._eventPayload.pull_request.head.ref}`,
+      sha: commit.data.sha
+    });
+    core.debug(`Commit pushed!`);
+  }
+
+  async getTreeShaForCommit(sha: string): Promise<string> {
+    const { data: commit_data } = await this._octokit.rest.git.getCommit({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      commit_sha: sha
+    });
+
+    return commit_data.tree.sha;
+  }
 }

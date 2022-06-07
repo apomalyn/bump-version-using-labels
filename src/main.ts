@@ -20,6 +20,7 @@ async function run(): Promise<void> {
   }
   try {
     const comment_pr = core.getBooleanInput('comment');
+    const commit_pr = core.getBooleanInput('commit');
     const labels = [
       core.getInput('patch_label'),
       core.getInput('minor_label'),
@@ -98,7 +99,16 @@ async function run(): Promise<void> {
       );
     }
 
-    // TODO check if need commit => commit
+    if (commit_pr) {
+      await github_service.commitFile(
+        file_path,
+        core.getInput('commit_message'),
+        {
+          name: core.getInput('commit_author_name'),
+          email: core.getInput('commit_author_email')
+        }
+      );
+    }
 
     core.setOutput('version', reference_version.raw);
   } catch (error) {

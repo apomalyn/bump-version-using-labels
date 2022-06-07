@@ -47,25 +47,13 @@ inputs:
     description: Message used for the commit. You can use '{old}' and '{new}' to display the ancient and new version. Ignored if `commit` is false.
     default: '[BOT] Bump version from {old} to {new}'
     required: false
-  commit_options:
-    description: Commit options (eg. --no-verify). Ignored if `commit` is false.
-    default: ''
-    required: false
-  commit_branch:
-    description: Git branch name, where changes should be pushed too. Ignored if `commit` is false.
-    default: ${{ github.head_ref }}
-    required: false
-  commit_user_name:
+  commit_author_name:
     description: Name used for the commit user. Ignored if `commit` is false.
     default: 'GitHub Actions'
     required: false
-  commit_user_email:
+  commit_author_email:
     description: Email address used for the commit user. Ignored if `commit` is false.
     default: 'actions@github.com'
-    required: false
-  repository:
-    description: Local file path to the git repository. Defaults to the current directory (`.`). Ignored if `commit` is false.
-    default: '.'
     required: false
 
 outputs:

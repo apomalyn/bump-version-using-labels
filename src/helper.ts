@@ -16,7 +16,7 @@ export function getOctokitAuth(): InstanceType<typeof GitHub> {
 
 // Load the JSON or YAML file located at file_path.
 // Throw an error if the file doesn't exist, is not valid or is something else than a JSON or YAML file.
-export function loadFile(file_path: string): Object {
+export function loadFile(file_path: string, parse = true): Object | string {
   if (!existsSync(file_path)) {
     throw new Error(`${file_path} doesn't exists.`);
   }
@@ -24,7 +24,7 @@ export function loadFile(file_path: string): Object {
   // Read the content of the file.
   const content = readFileSync(file_path, 'utf8');
 
-  return parseFile(file_path, content);
+  return parse ? parseFile(file_path, content) : content;
 }
 
 /**
