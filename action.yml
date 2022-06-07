@@ -31,7 +31,7 @@ inputs:
     required: false
 
   comment:
-    description: Comment the pull request when the version is update. Set to `false` to disable.
+    description: Comment the pull request when the version is update or when there is an error. Set to `false` to disable.
     default: 'true'
     required: false
   comment_message:
