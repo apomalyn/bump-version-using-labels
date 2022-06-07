@@ -93,7 +93,10 @@ async function run(): Promise<void> {
     if (commit_pr) {
       await github_service.commitFile(
         file_path,
-        core.getInput('commit_message'),
+        core
+          .getInput('commit_message')
+          .replace(OLD_TAG, version.raw)
+          .replace(NEW_TAG, reference_version.raw),
         {
           name: core.getInput('commit_user_name'),
           email: core.getInput('commit_user_email')

@@ -53,7 +53,7 @@ inputs:
     required: false
   commit_user_email:
     description: Email address used for the commit user. Ignored if `commit` is false.
-    default: 'github-actions[bot]@github.com'
+    default: 'github-actions[bot]@users.noreply.github.com'
     required: false
 
   json_spacing:
