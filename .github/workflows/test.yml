@@ -36,3 +36,4 @@ jobs:
       - uses: ./
         with:
           file_path: 'packag.json'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
