@@ -72,9 +72,6 @@ export default class GithubService {
     });
 
     if (tags_list_response.status !== 200) {
-      core.debug(
-        `Retrieving tag list failed, status code: ${tags_list_response.status}`
-      );
       throw new Error(`No tags found on the repository`);
     }
 
