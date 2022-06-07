@@ -7,15 +7,15 @@ inputs:
     default: 'version: Patch'
     required: false
   minor_label:
-    description: Label used to update the minor version (x.MINOR.x)
+    description: Label used to update the minor version (x.MINOR.0)
     default: 'version: Minor'
     required: false
   major_label:
-    description: Label used to update the minor version (MAJOR.x.x)
+    description: Label used to update the minor version (MAJOR.0.0)
     default: 'version: Major'
     required: false
-  look_for_tag:
-    description: Tag in the file that contains the version.
+  look_for_key:
+    description: Key in the file that contains the version.
     default: 'version'
     required: false
   file_path:
@@ -24,7 +24,7 @@ inputs:
   use_tag_as_ref:
     description: Use the tags of the repository to determine the latest version.
     default: 'false'
-    required: true
+    required: false
   reference_branch:
     description: Use the specified branch to determine the latest version used. Ignored if `use_tag_as_ref` is true.
     default: 'main'

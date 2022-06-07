@@ -26,7 +26,7 @@ async function run(): Promise<void> {
       core.getInput('minor_label'),
       core.getInput('major_label')
     ];
-    const look_for: string = core.getInput('look_for_tag');
+    const look_for: string = core.getInput('look_for_key');
     const file_path: string = core.getInput('file_path');
 
     if (file_path === '') {
@@ -84,31 +84,35 @@ async function run(): Promise<void> {
       return;
     }
 
-    Object.defineProperty(content, look_for, {
-      value: reference_version.raw
-    });
+    if (reference_version.raw === version.raw) {
+      core.info(`Version already updated. Skipping.`);
+    } else {
+      Object.defineProperty(content, look_for, {
+        value: reference_version.raw
+      });
 
-    writeFile(file_path, content, Number(core.getInput('json_spacing')));
+      writeFile(file_path, content, Number(core.getInput('json_spacing')));
 
-    if (commit_pr) {
-      await github_service.commitFile(
-        file_path,
-        core
-          .getInput('commit_message')
-          .replace(OLD_TAG, version.raw)
-          .replace(NEW_TAG, reference_version.raw),
-        {
-          name: core.getInput('commit_user_name'),
-          email: core.getInput('commit_user_email')
-        }
-      );
-      if (comment_pr) {
-        await github_service.createComment(
+      if (commit_pr) {
+        await github_service.commitFile(
+          file_path,
           core
-            .getInput('comment_message')
+            .getInput('commit_message')
             .replace(OLD_TAG, version.raw)
-            .replace(NEW_TAG, reference_version.raw)
+            .replace(NEW_TAG, reference_version.raw),
+          {
+            name: core.getInput('commit_user_name'),
+            email: core.getInput('commit_user_email')
+          }
         );
+        if (comment_pr) {
+          await github_service.createComment(
+            core
+              .getInput('comment_message')
+              .replace(OLD_TAG, version.raw)
+              .replace(NEW_TAG, reference_version.raw)
+          );
+        }
       }
     }
 
