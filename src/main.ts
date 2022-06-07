@@ -99,7 +99,7 @@ async function run(): Promise<void> {
 
     // TODO check if need commit => commit
 
-    core.setOutput('time', new Date().toTimeString());
+    core.setOutput('version', reference_version.raw);
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message);
   }
