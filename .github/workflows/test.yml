@@ -24,3 +24,10 @@ jobs:
           file_path: 'package.json'
           minor_label: 'Increase: minor version'
           comment: true
+      - uses: ./
+        with:
+          file_path: 'package.json'
+          minor_label: 'Increase: minor version'
+          use_tag_as_ref: true
+          comment: false
+          commit: false

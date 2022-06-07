@@ -42,11 +42,12 @@ async function run(): Promise<void> {
     }
     core.debug(`Raw version parsed to ${version.raw}`);
 
-    const reference_version = await getReferenceVersion(file_path, look_for);
+    let reference_version = await getReferenceVersion(file_path, look_for);
 
     // Retrieving the reference version failed
     if (reference_version === undefined) {
-      return;
+      core.info(`Reference version not found, will use the local one`);
+      reference_version = version;
     }
 
     let increased = false;
@@ -171,7 +172,6 @@ async function getRefVersionFromTag(): Promise<SemanticVersion | undefined> {
     const tags_list = await github_service.getRepoTags();
 
     if (tags_list.length === 0) {
-      core.setFailed(`No tags found on the repository`);
       return;
     }
 
@@ -179,7 +179,7 @@ async function getRefVersionFromTag(): Promise<SemanticVersion | undefined> {
   } catch (e) {
     if (e instanceof Error) {
       core.setFailed(`No tags found on the repository`);
-      return;
+      throw e;
     }
   }
 }
