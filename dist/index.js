@@ -44,13 +44,13 @@ function getOctokitAuth() {
 exports.getOctokitAuth = getOctokitAuth;
 // Load the JSON or YAML file located at file_path.
 // Throw an error if the file doesn't exist, is not valid or is something else than a JSON or YAML file.
-function loadFile(file_path) {
+function loadFile(file_path, parse = true) {
     if (!(0, fs_1.existsSync)(file_path)) {
         throw new Error(`${file_path} doesn't exists.`);
     }
     // Read the content of the file.
     const content = (0, fs_1.readFileSync)(file_path, 'utf8');
-    return parseFile(file_path, content);
+    return parse ? parseFile(file_path, content) : content;
 }
 exports.loadFile = loadFile;
 /**
@@ -75,10 +75,10 @@ exports.parseFile = parseFile;
  * Write the file content in the file specified.
  * Throw an error if the file is something else than a JSON or YAML file.
  */
-function writeFile(file_path, file_content) {
+function writeFile(file_path, file_content, json_spacing = 2) {
     let content;
     if (file_path.endsWith('.json')) {
-        content = JSON.stringify(file_content);
+        content = JSON.stringify(file_content, undefined, json_spacing);
     }
     else if (file_path.endsWith('.yaml') || file_path.endsWith('.yml')) {
         content = YAML.stringify(file_content);
@@ -151,13 +151,15 @@ function run() {
             return;
         }
         try {
+            core.debug('Start action');
             const comment_pr = core.getBooleanInput('comment');
+            const commit_pr = core.getBooleanInput('commit');
             const labels = [
                 core.getInput('patch_label'),
                 core.getInput('minor_label'),
                 core.getInput('major_label')
             ];
-            const look_for = core.getInput('look_for_tag');
+            const look_for = core.getInput('look_for_key');
             const file_path = core.getInput('file_path');
             if (file_path === '') {
                 core.setFailed(`file_path need to be specified.`);
@@ -170,10 +172,11 @@ function run() {
                 return;
             }
             core.debug(`Raw version parsed to ${version.raw}`);
-            const reference_version = yield getReferenceVersion(file_path, look_for);
+            let reference_version = yield getReferenceVersion(file_path, look_for);
             // Retrieving the reference version failed
             if (reference_version === undefined) {
-                return;
+                core.info(`Reference version not found, will use the local one`);
+                reference_version = version;
             }
             let increased = false;
             let message = `There is no version labels on the PR. 
@@ -202,22 +205,35 @@ function run() {
                 }
                 return;
             }
-            Object.defineProperty(content, look_for, {
-                value: reference_version.raw
-            });
-            (0, helper_1.writeFile)(file_path, content);
-            if (comment_pr) {
-                yield github_service.createComment(core
-                    .getInput('comment_message')
-                    .replace(OLD_TAG, version.raw)
-                    .replace(NEW_TAG, reference_version.raw));
+            if (reference_version.raw === version.raw) {
+                core.info(`Version already updated. Skipping.`);
             }
-            // TODO check if need commit => commit
-            core.setOutput('time', new Date().toTimeString());
+            else {
+                Object.defineProperty(content, look_for, {
+                    value: reference_version.raw
+                });
+                (0, helper_1.writeFile)(file_path, content, Number(core.getInput('json_spacing')));
+                if (commit_pr) {
+                    yield github_service.commitFile(file_path, core
+                        .getInput('commit_message')
+                        .replace(OLD_TAG, version.raw)
+                        .replace(NEW_TAG, reference_version.raw), {
+                        name: core.getInput('commit_user_name'),
+                        email: core.getInput('commit_user_email')
+                    });
+                    if (comment_pr) {
+                        yield github_service.createComment(core
+                            .getInput('comment_message')
+                            .replace(OLD_TAG, version.raw)
+                            .replace(NEW_TAG, reference_version.raw));
+                    }
+                }
+            }
+            core.setOutput('version', reference_version.raw);
         }
         catch (error) {
             if (error instanceof Error)
-                core.setFailed(error.message);
+                core.setFailed(error);
         }
     });
 }
@@ -269,7 +285,6 @@ function getRefVersionFromTag() {
         try {
             const tags_list = yield github_service.getRepoTags();
             if (tags_list.length === 0) {
-                core.setFailed(`No tags found on the repository`);
                 return;
             }
             return semantic_version_1.SemanticVersion.fromString(tags_list[0].name);
@@ -277,7 +292,7 @@ function getRefVersionFromTag() {
         catch (e) {
             if (e instanceof Error) {
                 core.setFailed(`No tags found on the repository`);
-                return;
+                throw e;
             }
         }
     });
@@ -480,6 +495,66 @@ class GithubService {
                 throw new Error(`No tags found on the repository`);
             }
             return tags_list_response.data;
+        });
+    }
+    commitFile(file_path, commit_message, committer, author, branch_name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const file_content = helper.loadFile(file_path, false);
+            core.info('Start commit process');
+            const blob = yield this._octokit.rest.git.createBlob({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                content: file_content,
+                encoding: 'utf8'
+            });
+            const current_commit_sha = this._eventPayload.pull_request.head.sha;
+            core.debug(`Last commit sha: ${current_commit_sha}`);
+            const tree = yield this._octokit.rest.git.createTree({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                tree: [
+                    {
+                        path: file_path,
+                        mode: `100644`,
+                        type: `blob`,
+                        sha: blob.data.sha
+                    }
+                ],
+                base_tree: yield this.getTreeShaForCommit(current_commit_sha)
+            });
+            if (author === undefined) {
+                author = {
+                    name: github.context.actor,
+                    email: `${github.context.actor}@users.noreply.github.com`
+                };
+            }
+            const commit = yield this._octokit.rest.git.createCommit({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                message: commit_message,
+                tree: tree.data.sha,
+                parents: [current_commit_sha],
+                committer,
+                author
+            });
+            core.debug(`New commit created, sha: ${commit.data.sha}`);
+            yield this._octokit.rest.git.updateRef({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                ref: `heads/${branch_name !== null && branch_name !== void 0 ? branch_name : this._eventPayload.pull_request.head.ref}`,
+                sha: commit.data.sha
+            });
+            core.info(`Commit pushed! (sha: ${commit.data.sha})`);
+        });
+    }
+    getTreeShaForCommit(sha) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { data: commit_data } = yield this._octokit.rest.git.getCommit({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                commit_sha: sha
+            });
+            return commit_data.tree.sha;
         });
     }
 }
