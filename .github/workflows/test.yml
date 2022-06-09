@@ -8,9 +8,8 @@ on: # rebuild any PRs and main branch changes
       - opened
       - reopened
 jobs:
-  test: # make sure the action works on a clean machine
+  test:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -35,5 +34,4 @@ jobs:
         uses: ./
         with:
           file_path: 'package.json'
-          minor_label: 'Increase: minor version'
           comment: true
