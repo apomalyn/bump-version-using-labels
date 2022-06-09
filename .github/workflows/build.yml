@@ -16,7 +16,7 @@ jobs:
       - run: |
           npm run all
       - name: Commit the dist directory.
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.event_name == 'pull_request' }}
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           file_pattern: "dist/*"
