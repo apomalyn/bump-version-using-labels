@@ -19,6 +19,7 @@ async function run(): Promise<void> {
     return;
   }
   try {
+    core.debug('Start action');
     const comment_pr = core.getBooleanInput('comment');
     const commit_pr = core.getBooleanInput('commit');
     const labels = [
@@ -118,8 +119,7 @@ async function run(): Promise<void> {
 
     core.setOutput('version', reference_version.raw);
   } catch (error) {
-    if (error instanceof Error) core.setFailed(error.message);
-    else core.setFailed(error);
+    if (error instanceof Error) core.setFailed(error);
   }
 }
 
