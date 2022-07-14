@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import * as helper from '../src/helper';
+import * as helper from '../src/utils/helper';
 import { expect } from '@jest/globals';
 
 describe('Helper', () => {
