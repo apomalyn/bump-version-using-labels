@@ -1,7 +1,13 @@
 {
+  "settings": {
+    "import/resolver": {
+      "typescript": {}
+    }
+  },
   "plugins": [
     "jest",
-    "@typescript-eslint"
+    "@typescript-eslint",
+    "import"
   ],
   "extends": [
     "plugin:github/recommended",

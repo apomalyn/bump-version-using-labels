@@ -1,10 +1,9 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import * as helper from './helper';
-import GithubService from './service/github-service';
-import { SemanticVersion } from './models/semantic-version';
-import { VersionType } from './models/version-type';
-import { writeFile } from './helper';
+import * as helper from '@utils/helper';
+import GithubService from './services/github-service';
+import { SemanticVersion } from '@models/semantic-version';
+import { VersionType } from '@models/version-type';
 
 const github_service = new GithubService();
 
@@ -35,7 +34,8 @@ async function run(): Promise<void> {
       return;
     }
 
-    const content = helper.loadFile(file_path);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+    const content: Object = helper.loadFile(file_path);
     const version = getVersionFromFile(content, look_for);
 
     if (version === undefined) {
@@ -54,7 +54,7 @@ async function run(): Promise<void> {
 
     let increased = false;
     let message = `There is no version labels on the PR. 
-    Please use one of the following: ${labels}`;
+    Please use one of the following: ${labels.join(',')}`;
 
     core.debug('Start label search');
     for (const label of github_service.labels) {
@@ -92,7 +92,12 @@ async function run(): Promise<void> {
         value: reference_version.raw
       });
 
-      writeFile(file_path, content, Number(core.getInput('json_spacing')));
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+      helper.writeFile(
+        file_path,
+        content,
+        Number(core.getInput('json_spacing'))
+      );
 
       if (commit_pr) {
         await github_service.commitFile(
@@ -167,6 +172,7 @@ async function getRefVersionFromBranch(
       branch_name
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
     const content: Object = helper.parseFile(
       reference_file.name,
       Buffer.from(reference_file.content, 'base64').toString('binary')
@@ -201,4 +207,4 @@ async function getRefVersionFromTag(): Promise<SemanticVersion | undefined> {
   }
 }
 
-run();
+void run();

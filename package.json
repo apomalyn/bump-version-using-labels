@@ -49,6 +49,7 @@
   "_moduleAliases": {
     "@services": "lib/services",
     "@fileHandlers": "lib/file-handlers",
-    "@models": "lib/models"
+    "@models": "lib/models",
+    "@utils": "lib/utils"
   }
 }

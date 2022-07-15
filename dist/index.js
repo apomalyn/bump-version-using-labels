@@ -1102,7 +1102,7 @@ class OidcClient {
     static getIDToken(audience) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                // New ID Token is requested from action service
+                // New ID Token is requested from action services
                 let id_token_url = OidcClient.getIDTokenUrl();
                 if (audience) {
                     const encodedAudience = encodeURIComponent(audience);
@@ -6272,7 +6272,7 @@ Body.Promise = global.Promise;
 /**
  * headers.js
  *
- * Headers class offers convenient helpers
+ * Headers class offers convenient utils
  */
 
 const invalidTokenRegex = /[^\^_`a-zA-Z\-0-9!#$%&'*+.|~]/;
