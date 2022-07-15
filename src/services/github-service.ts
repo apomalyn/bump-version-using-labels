@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import * as helper from '../helper';
+import * as helper from '../utils/helper';
 // eslint-disable-next-line import/no-unresolved
 import { Label, PullRequestEvent } from '@octokit/webhooks-definitions/schema';
 import IGithubGetContentPayload from '../models/igithub-get-content-payload';
