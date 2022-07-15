@@ -19,7 +19,7 @@ inputs:
     default: 'version'
     required: false
   file_path:
-    description: Path to the file that contains the version. The file should be a YAML or a JSON file
+    description: Path to the file that contains the version. Check the action README to find the supported files
     required: true
   use_tag_as_ref:
     description: Use the tags of the repository to determine the latest version.
@@ -54,11 +54,6 @@ inputs:
   commit_user_email:
     description: Email address used for the commit user. Ignored if `commit` is false.
     default: 'github-actions[bot]@users.noreply.github.com'
-    required: false
-
-  json_spacing:
-    description: Set the spacing-level of the JSON. Only used if the file to update is a json.
-    default: '2'
     required: false
 
 outputs:

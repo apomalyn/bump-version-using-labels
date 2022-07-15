@@ -8,11 +8,15 @@ export default class FileHandlerFactory {
   static fromFile(filePath: string): FileHandler {
     const content = this.getContentFromFile(filePath);
 
+    return this.fromContent(filePath, content);
+  }
+
+  static fromContent(filePath: string, fileContent: string): FileHandler {
     for (const fileTypeRegex of Object.values(FileType)) {
       if (filePath.match(fileTypeRegex) !== null) {
         switch (fileTypeRegex) {
           case FileType.JSON:
-            return new JsonHandler(content);
+            return new JsonHandler(fileContent);
         }
       }
     }

@@ -1,7 +1,8 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import * as helper from '@utils/helper';
+import FileHandlerFactory from '@fileHandlers/file-handler-factory';
 import GithubService from './services/github-service';
+import { NotFoundError } from '@utils/not-found-error';
 import { SemanticVersion } from '@models/semantic-version';
 import { VersionType } from '@models/version-type';
 
@@ -17,6 +18,9 @@ async function run(): Promise<void> {
     );
     return;
   }
+  const look_for: string = core.getInput('look_for_key');
+  const file_path: string = core.getInput('file_path');
+
   try {
     core.debug('Start action');
     const comment_pr = core.getBooleanInput('comment');
@@ -26,22 +30,15 @@ async function run(): Promise<void> {
       core.getInput('minor_label'),
       core.getInput('major_label')
     ];
-    const look_for: string = core.getInput('look_for_key');
-    const file_path: string = core.getInput('file_path');
 
     if (file_path === '') {
       core.setFailed(`file_path need to be specified.`);
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-    const content: Object = helper.loadFile(file_path);
-    const version = getVersionFromFile(content, look_for);
+    const handler = FileHandlerFactory.fromFile(file_path);
+    const version = SemanticVersion.fromString(handler.get(look_for));
 
-    if (version === undefined) {
-      core.setFailed(`Tag ${look_for} not found in ${file_path}`);
-      return;
-    }
     core.debug(`Raw version parsed to ${version.raw}`);
 
     let reference_version = await getReferenceVersion(file_path, look_for);
@@ -88,16 +85,8 @@ async function run(): Promise<void> {
     if (reference_version.raw === version.raw) {
       core.info(`Version already updated. Skipping.`);
     } else {
-      Object.defineProperty(content, look_for, {
-        value: reference_version.raw
-      });
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
-      helper.writeFile(
-        file_path,
-        content,
-        Number(core.getInput('json_spacing'))
-      );
+      handler.set(look_for, reference_version.raw);
+      handler.saveToFile(file_path);
 
       if (commit_pr) {
         await github_service.commitFile(
@@ -124,22 +113,10 @@ async function run(): Promise<void> {
 
     core.setOutput('version', reference_version.raw);
   } catch (error) {
-    if (error instanceof Error) core.setFailed(error);
+    if (error instanceof NotFoundError)
+      core.setFailed(`Tag ${look_for} not found in ${file_path}`);
+    else if (error instanceof Error) core.setFailed(error);
   }
-}
-
-function getVersionFromFile(
-  content: Object,
-  key: string
-): SemanticVersion | undefined {
-  const version_raw = content[key as keyof typeof content].toString();
-
-  if (version_raw === undefined) {
-    return;
-  }
-  core.debug(`File loaded and raw version found: ${version_raw}`);
-
-  return SemanticVersion.fromString(version_raw);
 }
 
 async function getReferenceVersion(
@@ -172,13 +149,11 @@ async function getRefVersionFromBranch(
       branch_name
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-    const content: Object = helper.parseFile(
+    const handler = FileHandlerFactory.fromContent(
       reference_file.name,
       Buffer.from(reference_file.content, 'base64').toString('binary')
     );
-
-    return getVersionFromFile(content, look_for_key);
+    return SemanticVersion.fromString(handler.get(look_for_key));
   } catch (e) {
     if (e instanceof ReferenceError) {
       core.setFailed(e.message);
