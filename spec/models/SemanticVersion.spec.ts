@@ -24,7 +24,7 @@ const good_samples = [
   },
   {
     raw: 'v1.1.1',
-    expected: new SemanticVersion(1, 1, 1, 'aw2Q22ad', '2211sda21', true)
+    expected: new SemanticVersion(1, 1, 1, '', '', true)
   }
 ];
 

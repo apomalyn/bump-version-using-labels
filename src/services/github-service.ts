@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as helper from '../utils/helper';
 import { Label, PullRequestEvent } from '@octokit/webhooks-definitions/schema';
+import { existsSync, readFileSync } from 'fs';
 import IGithubGetContentPayload from '../models/igithub-get-content-payload';
 import ITagPayload from '../models/igithub-tag-payload';
 
@@ -84,7 +85,11 @@ export default class GithubService {
     author?: { name: string; email: string },
     branch_name?: string | undefined
   ): Promise<void> {
-    const file_content = helper.loadFile(file_path, false) as string;
+    if (!existsSync(file_path)) {
+      throw new Error(`${file_path} doesn't exists.`);
+    }
+
+    const file_content = readFileSync(file_path, 'utf8');
     core.info('Start commit process');
     const blob = await this._octokit.rest.git.createBlob({
       owner: github.context.repo.owner,
