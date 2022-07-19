@@ -1,0 +1,15 @@
+{
+  "name": "dummy",
+  "token": "1.0.0",
+  "private": true,
+  "description": "Dummy template",
+  "main": "lib/main.js",
+  "double": {
+    "nested": {
+      "token": "3.0.0"
+    }
+  },
+  "nested": {
+    "token": "2.0.0"
+  }
+}

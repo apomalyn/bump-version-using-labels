@@ -1,98 +1,6 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 3947:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.writeFile = exports.parseFile = exports.loadFile = exports.getOctokitAuth = void 0;
-const YAML = __importStar(__nccwpck_require__(4603));
-const github = __importStar(__nccwpck_require__(5438));
-const fs_1 = __nccwpck_require__(7147);
-function getOctokitAuth() {
-    const githubToken = process.env['GITHUB_TOKEN'];
-    if (githubToken === undefined) {
-        throw new Error(`GITHUB_TOKEN not available in the environment. Please specify it under the env section.`);
-    }
-    return github.getOctokit(githubToken);
-}
-exports.getOctokitAuth = getOctokitAuth;
-// Load the JSON or YAML file located at file_path.
-// Throw an error if the file doesn't exist, is not valid or is something else than a JSON or YAML file.
-function loadFile(file_path, parse = true) {
-    if (!(0, fs_1.existsSync)(file_path)) {
-        throw new Error(`${file_path} doesn't exists.`);
-    }
-    // Read the content of the file.
-    const content = (0, fs_1.readFileSync)(file_path, 'utf8');
-    return parse ? parseFile(file_path, content) : content;
-}
-exports.loadFile = loadFile;
-/**
- * Parse a JSON or YAML string to object
- * Throw an error if the file content is invalid or is something else than a JSON or YAML file.
- */
-function parseFile(file_name, file_content) {
-    let loaded;
-    if (file_name.endsWith('.json')) {
-        loaded = JSON.parse(file_content);
-    }
-    else if (file_name.endsWith('.yaml') || file_name.endsWith('.yml')) {
-        loaded = YAML.parse(file_content);
-    }
-    else {
-        throw new Error(`${file_name} should be a YAML or JSON file.`);
-    }
-    return loaded;
-}
-exports.parseFile = parseFile;
-/**
- * Write the file content in the file specified.
- * Throw an error if the file is something else than a JSON or YAML file.
- */
-function writeFile(file_path, file_content, json_spacing = 2) {
-    let content;
-    if (file_path.endsWith('.json')) {
-        content = JSON.stringify(file_content, undefined, json_spacing);
-    }
-    else if (file_path.endsWith('.yaml') || file_path.endsWith('.yml')) {
-        content = YAML.stringify(file_content);
-    }
-    else {
-        throw new Error(`${file_path} should be a YAML or JSON file.`);
-    }
-    (0, fs_1.writeFileSync)(file_path, content);
-}
-exports.writeFile = writeFile;
-
-
-/***/ }),
-
 /***/ 3109:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -136,11 +44,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-const helper = __importStar(__nccwpck_require__(3947));
-const github_service_1 = __importDefault(__nccwpck_require__(8885));
-const semantic_version_1 = __nccwpck_require__(2888);
-const version_type_1 = __nccwpck_require__(1873);
-const helper_1 = __nccwpck_require__(3947);
+const file_handler_factory_1 = __importDefault(__nccwpck_require__(6617));
+const github_service_1 = __importDefault(__nccwpck_require__(2404));
+const not_found_error_1 = __nccwpck_require__(3171);
+const semantic_version_1 = __nccwpck_require__(7829);
+const version_type_1 = __nccwpck_require__(407);
 const github_service = new github_service_1.default();
 const OLD_TAG = '{old}';
 const NEW_TAG = '{new}';
@@ -150,6 +58,8 @@ function run() {
             core.setFailed("Event isn't a pull request. This action can only work on pull request.");
             return;
         }
+        const look_for = core.getInput('look_for_key');
+        const file_path = core.getInput('file_path');
         try {
             core.debug('Start action');
             const comment_pr = core.getBooleanInput('comment');
@@ -159,18 +69,12 @@ function run() {
                 core.getInput('minor_label'),
                 core.getInput('major_label')
             ];
-            const look_for = core.getInput('look_for_key');
-            const file_path = core.getInput('file_path');
             if (file_path === '') {
                 core.setFailed(`file_path need to be specified.`);
                 return;
             }
-            const content = helper.loadFile(file_path);
-            const version = getVersionFromFile(content, look_for);
-            if (version === undefined) {
-                core.setFailed(`Tag ${look_for} not found in ${file_path}`);
-                return;
-            }
+            const handler = file_handler_factory_1.default.fromFile(file_path);
+            const version = semantic_version_1.SemanticVersion.fromString(handler.get(look_for));
             core.debug(`Raw version parsed to ${version.raw}`);
             let reference_version = yield getReferenceVersion(file_path, look_for);
             // Retrieving the reference version failed
@@ -180,7 +84,7 @@ function run() {
             }
             let increased = false;
             let message = `There is no version labels on the PR. 
-    Please use one of the following: ${labels}`;
+    Please use one of the following: ${labels.join(',')}`;
             core.debug('Start label search');
             for (const label of github_service.labels) {
                 const index = labels.indexOf(label.name);
@@ -209,10 +113,8 @@ function run() {
                 core.info(`Version already updated. Skipping.`);
             }
             else {
-                Object.defineProperty(content, look_for, {
-                    value: reference_version.raw
-                });
-                (0, helper_1.writeFile)(file_path, content, Number(core.getInput('json_spacing')));
+                handler.set(look_for, reference_version.raw);
+                handler.saveToFile(file_path);
                 if (commit_pr) {
                     yield github_service.commitFile(file_path, core
                         .getInput('commit_message')
@@ -232,18 +134,12 @@ function run() {
             core.setOutput('version', reference_version.raw);
         }
         catch (error) {
-            if (error instanceof Error)
+            if (error instanceof not_found_error_1.NotFoundError)
+                core.setFailed(`Tag ${look_for} not found in ${file_path}`);
+            else if (error instanceof Error)
                 core.setFailed(error);
         }
     });
-}
-function getVersionFromFile(content, key) {
-    const version_raw = content[key].toString();
-    if (version_raw === undefined) {
-        return;
-    }
-    core.debug(`File loaded and raw version found: ${version_raw}`);
-    return semantic_version_1.SemanticVersion.fromString(version_raw);
 }
 function getReferenceVersion(file_path, look_for_key) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -266,8 +162,8 @@ function getRefVersionFromBranch(branch_name, file_path, look_for_key) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const reference_file = yield github_service.getFileContentForBranch(file_path, branch_name);
-            const content = helper.parseFile(reference_file.name, Buffer.from(reference_file.content, 'base64').toString('binary'));
-            return getVersionFromFile(content, look_for_key);
+            const handler = file_handler_factory_1.default.fromContent(reference_file.name, Buffer.from(reference_file.content, 'base64').toString('binary'));
+            return semantic_version_1.SemanticVersion.fromString(handler.get(look_for_key));
         }
         catch (e) {
             if (e instanceof ReferenceError) {
@@ -297,105 +193,12 @@ function getRefVersionFromTag() {
         }
     });
 }
-run();
+void run();
 
 
 /***/ }),
 
-/***/ 2888:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.SemanticVersion = void 0;
-// https://semver.org/#spec-item-2
-// > A normal version number MUST take the form X.Y.Z where X, Y, and Z are non-negative
-// > integers, and MUST NOT contain leading zeroes. X is the major version, Y is the minor
-// > version, and Z is the patch version. Each element MUST increase numerically.
-//
-// NOTE: We differ here in that we allow X and X.Y, with missing parts having the default
-// value of `0`.
-const version_type_1 = __nccwpck_require__(1873);
-const versionRegExp = /^(0|[1-9]\d*)(?:\.(0|[1-9]\d*)(?:\.(0|[1-9]\d*)(?:-([a-z0-9-.]+))?(?:\+([a-z0-9-.]+))?)?)?$/i;
-class SemanticVersion {
-    constructor(major, minor, patch, pre_release = '', build = '') {
-        this.prerelease = '';
-        this.build = '';
-        this._major = major;
-        this._minor = minor;
-        this._patch = patch;
-        this.prerelease = pre_release;
-        this.build = build;
-    }
-    get major() {
-        return this._major;
-    }
-    get minor() {
-        return this._minor;
-    }
-    get patch() {
-        return this._patch;
-    }
-    static fromString(text) {
-        const match = versionRegExp.exec(text);
-        if (!match)
-            throw new SyntaxError("The text given isn't a valid semantic version.");
-        const [, major, minor = '0', patch = '0', prerelease = '', build = ''] = match;
-        return new SemanticVersion(parseInt(major, 10), parseInt(minor, 10), parseInt(patch, 10), prerelease, build);
-    }
-    get raw() {
-        return `${this._major}.${this._minor}.${this._patch}${this.prerelease.length > 0 ? `-${this.prerelease}` : ''}${this.build.length > 0 ? `+${this.build}` : ''}`;
-    }
-    increase(versionType) {
-        switch (versionType) {
-            case version_type_1.VersionType.MAJOR:
-                this.increaseMajor();
-                break;
-            case version_type_1.VersionType.MINOR:
-                this.increaseMinor();
-                break;
-            case version_type_1.VersionType.PATCH:
-                this.increasePath();
-                break;
-        }
-    }
-    increaseMajor() {
-        this._major += 1;
-        this._minor = 0;
-        this._patch = 0;
-    }
-    increaseMinor() {
-        this._minor += 1;
-        this._patch = 0;
-    }
-    increasePath() {
-        this._patch += 1;
-    }
-}
-exports.SemanticVersion = SemanticVersion;
-
-
-/***/ }),
-
-/***/ 1873:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.VersionType = void 0;
-var VersionType;
-(function (VersionType) {
-    VersionType[VersionType["PATCH"] = 0] = "PATCH";
-    VersionType[VersionType["MINOR"] = 1] = "MINOR";
-    VersionType[VersionType["MAJOR"] = 2] = "MAJOR";
-})(VersionType = exports.VersionType || (exports.VersionType = {}));
-
-
-/***/ }),
-
-/***/ 8885:
+/***/ 2404:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -435,7 +238,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-const helper = __importStar(__nccwpck_require__(3947));
+const helper = __importStar(__nccwpck_require__(698));
+const fs_1 = __nccwpck_require__(7147);
 class GithubService {
     constructor() {
         this._octokit = helper.getOctokitAuth();
@@ -499,7 +303,10 @@ class GithubService {
     }
     commitFile(file_path, commit_message, committer, author, branch_name) {
         return __awaiter(this, void 0, void 0, function* () {
-            const file_content = helper.loadFile(file_path, false);
+            if (!(0, fs_1.existsSync)(file_path)) {
+                throw new Error(`${file_path} doesn't exists.`);
+            }
+            const file_content = (0, fs_1.readFileSync)(file_path, 'utf8');
             core.info('Start commit process');
             const blob = yield this._octokit.rest.git.createBlob({
                 owner: github.context.repo.owner,
@@ -559,6 +366,69 @@ class GithubService {
     }
 }
 exports["default"] = GithubService;
+
+
+/***/ }),
+
+/***/ 698:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.writeFile = exports.getOctokitAuth = void 0;
+const YAML = __importStar(__nccwpck_require__(4603));
+const github = __importStar(__nccwpck_require__(5438));
+const fs_1 = __nccwpck_require__(7147);
+function getOctokitAuth() {
+    const githubToken = process.env['GITHUB_TOKEN'];
+    if (githubToken === undefined) {
+        throw new Error(`GITHUB_TOKEN not available in the environment. Please specify it under the env section.`);
+    }
+    return github.getOctokit(githubToken);
+}
+exports.getOctokitAuth = getOctokitAuth;
+/**
+ * Write the file content in the file specified.
+ * Throw an error if the file is something else than a JSON or YAML file.
+ */
+function writeFile(file_path, file_content, json_spacing = 2) {
+    let content;
+    if (file_path.endsWith('.json')) {
+        content = JSON.stringify(file_content, undefined, json_spacing);
+    }
+    else if (file_path.endsWith('.yaml') || file_path.endsWith('.yml')) {
+        content = YAML.stringify(file_content);
+    }
+    else {
+        throw new Error(`${file_path} should be a YAML or JSON file.`);
+    }
+    (0, fs_1.writeFileSync)(file_path, content);
+}
+exports.writeFile = writeFile;
 
 
 /***/ }),
@@ -9859,6 +9729,278 @@ function wrappy (fn, cb) {
     return ret
   }
 }
+
+
+/***/ }),
+
+/***/ 6617:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const fs_1 = __nccwpck_require__(7147);
+const file_type_1 = __nccwpck_require__(8519);
+const json_handler_1 = __importDefault(__nccwpck_require__(2467));
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+class FileHandlerFactory {
+    static fromFile(filePath) {
+        const content = this.getContentFromFile(filePath);
+        return this.fromContent(filePath, content);
+    }
+    static fromContent(filePath, fileContent) {
+        for (const fileTypeRegex of Object.values(file_type_1.FileType)) {
+            if (filePath.match(fileTypeRegex) !== null) {
+                switch (fileTypeRegex) {
+                    case file_type_1.FileType.JSON:
+                        return new json_handler_1.default(fileContent);
+                }
+            }
+        }
+        throw new TypeError(`${filePath} isn't a type of file that is supported`);
+    }
+    /**
+     * Open and read the file.
+     */
+    static getContentFromFile(filePath) {
+        if (!(0, fs_1.existsSync)(filePath)) {
+            throw new Error(`${filePath} doesn't exists.`);
+        }
+        // Read the content of the file.
+        return (0, fs_1.readFileSync)(filePath, 'utf8');
+    }
+}
+exports["default"] = FileHandlerFactory;
+
+
+/***/ }),
+
+/***/ 9881:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.FileHandler = void 0;
+const fs_1 = __nccwpck_require__(7147);
+class FileHandler {
+    constructor(content, fileType) {
+        this.content = content;
+        this.fileType = fileType;
+    }
+    saveToFile(filePath) {
+        (0, fs_1.writeFileSync)(filePath, this.content);
+    }
+    getContent() {
+        return this.content;
+    }
+    keyToArray(key, separator = '.') {
+        return key.split(separator);
+    }
+}
+exports.FileHandler = FileHandler;
+
+
+/***/ }),
+
+/***/ 2467:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const file_handler_1 = __nccwpck_require__(9881);
+const file_type_1 = __nccwpck_require__(8519);
+const not_found_error_1 = __nccwpck_require__(3171);
+class JsonHandler extends file_handler_1.FileHandler {
+    constructor(content) {
+        super(content, file_type_1.FileType.JSON);
+    }
+    static buildKeyRegex(key) {
+        return `(${key})${JsonHandler.QUOTATION_REGEX}(?:\\:\\s*)(?:{)`;
+    }
+    static buildKeyValueRegex(key) {
+        return `(${key})${JsonHandler.QUOTATION_REGEX}(?:\\:\\s*)${JsonHandler.QUOTATION_REGEX}?(?<value>[\\w\\s-._]*)${JsonHandler.QUOTATION_REGEX}?`;
+    }
+    static buildRegex(keys) {
+        let regex = JsonHandler.QUOTATION_REGEX;
+        for (let i = 0; i < keys.length - 1; i++) {
+            regex +=
+                JsonHandler.buildKeyRegex(keys[i]) + JsonHandler.EVERYTHING_REGEX;
+        }
+        regex += JsonHandler.buildKeyValueRegex(keys[keys.length - 1]);
+        return new RegExp(regex, 'g');
+    }
+    get(key) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return this.searchKey(key).groups.value;
+    }
+    set(key, value) {
+        const matchResult = this.searchKey(key);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const originalValue = matchResult.groups.value;
+        // Update the value in the original match
+        const exploded = matchResult[0].split(':');
+        exploded[exploded.length - 1] = exploded[exploded.length - 1].replace(originalValue, value);
+        const updated = exploded.join(':');
+        // Inject the updated value
+        this.content = this.content.replace(matchResult[0], updated);
+    }
+    saveToFile(filePath) {
+        super.saveToFile(filePath);
+    }
+    searchKey(key) {
+        const parsedKey = this.keyToArray(key);
+        const regex = JsonHandler.buildRegex(parsedKey);
+        const allMatch = this.content.matchAll(regex);
+        if (allMatch === undefined) {
+            throw new not_found_error_1.NotFoundError(`${key} wasn't found.`);
+        }
+        // Check to see that the match start at level 1
+        for (const match of allMatch) {
+            if (this.content.slice(0, match.index).split('{').length % 2 === 0) {
+                return match;
+            }
+        }
+        throw new not_found_error_1.NotFoundError(`${key} wasn't found.`);
+    }
+}
+exports["default"] = JsonHandler;
+JsonHandler.QUOTATION_REGEX = '(?:\\"|\\\')';
+JsonHandler.EVERYTHING_REGEX = '([\\S\\s]+?)';
+
+
+/***/ }),
+
+/***/ 8519:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.FileType = void 0;
+var FileType;
+(function (FileType) {
+    FileType["JSON"] = ".json$";
+    // YAML = '.y[a]?ml$' // Supported soon
+})(FileType = exports.FileType || (exports.FileType = {}));
+
+
+/***/ }),
+
+/***/ 7829:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SemanticVersion = void 0;
+// https://semver.org/#spec-item-2
+// > A normal version number MUST take the form X.Y.Z where X, Y, and Z are non-negative
+// > integers, and MUST NOT contain leading zeroes. X is the major version, Y is the minor
+// > version, and Z is the patch version. Each element MUST increase numerically.
+//
+// NOTE: We differ here in that we allow X and X.Y, with missing parts having the default
+// value of `0`.
+const version_type_1 = __nccwpck_require__(407);
+const versionRegExp = /^(0|[1-9]\d*)(?:\.(0|[1-9]\d*)(?:\.(0|[1-9]\d*)(?:-([a-z0-9-.]+))?(?:\+([a-z0-9-.]+))?)?)?$/i;
+class SemanticVersion {
+    constructor(major, minor, patch, pre_release = '', build = '', startWithV = false) {
+        this.prerelease = '';
+        this.build = '';
+        this.startWithV = false;
+        this._major = major;
+        this._minor = minor;
+        this._patch = patch;
+        this.prerelease = pre_release;
+        this.build = build;
+        this.startWithV = startWithV;
+    }
+    get major() {
+        return this._major;
+    }
+    get minor() {
+        return this._minor;
+    }
+    get patch() {
+        return this._patch;
+    }
+    get raw() {
+        return `${this.startWithV ? 'v' : ''}${this._major}.${this._minor}.${this._patch}${this.prerelease.length > 0 ? `-${this.prerelease}` : ''}${this.build.length > 0 ? `+${this.build}` : ''}`;
+    }
+    static fromString(text) {
+        let startWithV = false;
+        if (text.startsWith('v')) {
+            text = text.slice(1);
+            startWithV = true;
+        }
+        const match = versionRegExp.exec(text);
+        if (!match)
+            throw new SyntaxError("The text given isn't a valid semantic version.");
+        const [, major, minor = '0', patch = '0', prerelease = '', build = ''] = match;
+        return new SemanticVersion(parseInt(major, 10), parseInt(minor, 10), parseInt(patch, 10), prerelease, build, startWithV);
+    }
+    increase(versionType) {
+        switch (versionType) {
+            case version_type_1.VersionType.MAJOR:
+                this.increaseMajor();
+                break;
+            case version_type_1.VersionType.MINOR:
+                this.increaseMinor();
+                break;
+            case version_type_1.VersionType.PATCH:
+                this.increasePath();
+                break;
+        }
+    }
+    increaseMajor() {
+        this._major += 1;
+        this._minor = 0;
+        this._patch = 0;
+    }
+    increaseMinor() {
+        this._minor += 1;
+        this._patch = 0;
+    }
+    increasePath() {
+        this._patch += 1;
+    }
+}
+exports.SemanticVersion = SemanticVersion;
+
+
+/***/ }),
+
+/***/ 407:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.VersionType = void 0;
+var VersionType;
+(function (VersionType) {
+    VersionType[VersionType["PATCH"] = 0] = "PATCH";
+    VersionType[VersionType["MINOR"] = 1] = "MINOR";
+    VersionType[VersionType["MAJOR"] = 2] = "MAJOR";
+})(VersionType = exports.VersionType || (exports.VersionType = {}));
+
+
+/***/ }),
+
+/***/ 3171:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.NotFoundError = void 0;
+class NotFoundError extends Error {
+}
+exports.NotFoundError = NotFoundError;
 
 
 /***/ }),
