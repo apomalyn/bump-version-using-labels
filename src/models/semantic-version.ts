@@ -13,19 +13,22 @@ const versionRegExp =
 export class SemanticVersion {
   readonly prerelease: string = '';
   readonly build: string = '';
+  readonly startWithV: boolean = false;
 
   constructor(
     major: number,
     minor: number,
     patch: number,
     pre_release = '',
-    build = ''
+    build = '',
+    startWithV = false
   ) {
     this._major = major;
     this._minor = minor;
     this._patch = patch;
     this.prerelease = pre_release;
     this.build = build;
+    this.startWithV = startWithV;
   }
 
   private _major!: number;
@@ -46,7 +49,20 @@ export class SemanticVersion {
     return this._patch;
   }
 
+  get raw(): string {
+    return `${this.startWithV ? 'v' : ''}${this._major}.${this._minor}.${
+      this._patch
+    }${this.prerelease.length > 0 ? `-${this.prerelease}` : ''}${
+      this.build.length > 0 ? `+${this.build}` : ''
+    }`;
+  }
+
   static fromString(text: string): SemanticVersion {
+    let startWithV = false;
+    if (text.startsWith('v')) {
+      text = text.slice(1);
+      startWithV = true;
+    }
     const match = versionRegExp.exec(text);
     if (!match)
       throw new SyntaxError("The text given isn't a valid semantic version.");
@@ -58,14 +74,9 @@ export class SemanticVersion {
       parseInt(minor, 10),
       parseInt(patch, 10),
       prerelease,
-      build
+      build,
+      startWithV
     );
-  }
-
-  get raw(): string {
-    return `${this._major}.${this._minor}.${this._patch}${
-      this.prerelease.length > 0 ? `-${this.prerelease}` : ''
-    }${this.build.length > 0 ? `+${this.build}` : ''}`;
   }
 
   increase(versionType: VersionType): void {
