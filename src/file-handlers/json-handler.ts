@@ -1,6 +1,6 @@
 import { FileHandler } from './file-handler';
 import { FileType } from '@models/file-type';
-import { NotFoundError } from '../utils/not-found-error';
+import { NotFoundError } from '@utils/not-found-error';
 
 export default class JsonHandler extends FileHandler {
   private static readonly QUOTATION_REGEX = '(?:\\"|\\\')';
@@ -15,7 +15,7 @@ export default class JsonHandler extends FileHandler {
   }
 
   private static buildKeyValueRegex(key: string): string {
-    return `(${key})${JsonHandler.QUOTATION_REGEX}(?:\\:\\s*)${JsonHandler.QUOTATION_REGEX}?(?<value>[\\w\\s-._]*)${JsonHandler.QUOTATION_REGEX}?`;
+    return `(${key})${JsonHandler.QUOTATION_REGEX}(?:\\:\\s*)${JsonHandler.QUOTATION_REGEX}?(?<value>[\\w\\s-._+]*)${JsonHandler.QUOTATION_REGEX}?`;
   }
 
   private static buildRegex(keys: string[]): RegExp {
@@ -51,10 +51,11 @@ export default class JsonHandler extends FileHandler {
     this.content = this.content.replace(matchResult[0], updated);
   }
 
-  saveToFile(filePath: string): void {
-    super.saveToFile(filePath);
-  }
-
+  /**
+   * Search the key passed in the document and return the RegExpMatch
+   * This RegExpMatch contains one group called 'value' which is the value of the
+   * key passed.
+   */
   private searchKey(key: string): RegExpMatchArray {
     const parsedKey = this.keyToArray(key);
     const regex = JsonHandler.buildRegex(parsedKey);

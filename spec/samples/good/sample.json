@@ -6,10 +6,10 @@
   "main": "lib/main.js",
   "double": {
     "nested": {
-      "token": "3.0.0"
+      "token": "3.0.0+1"
     }
   },
   "nested": {
-    "token": "2.0.0"
+    "token": "2.0.0-q"
   }
 }

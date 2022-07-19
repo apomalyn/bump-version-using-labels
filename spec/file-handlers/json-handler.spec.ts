@@ -37,13 +37,13 @@ describe('JsonHandler', () => {
     it('should retrieve the value when the token is nested in the document', () => {
       const instance = buildJsonHandler();
 
-      expect(instance.get(nestedToken)).toBe('2.0.0');
+      expect(instance.get(nestedToken)).toBe('2.0.0-q');
     });
 
     it('should retrieve the value when the token is double nested in the document', () => {
       const instance = buildJsonHandler();
 
-      expect(instance.get(doubleNestedToken)).toBe('3.0.0');
+      expect(instance.get(doubleNestedToken)).toBe('3.0.0+1');
     });
 
     it('should retrieve the value when the token is double nested in the document', () => {
