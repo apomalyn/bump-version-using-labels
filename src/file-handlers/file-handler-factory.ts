@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'fs';
 import { FileHandler } from './file-handler';
 import { FileType } from '@models/file-type';
 import JsonHandler from './json-handler';
+import YamlHandler from '@fileHandlers/yaml-handler';
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export default class FileHandlerFactory {
@@ -17,6 +18,8 @@ export default class FileHandlerFactory {
         switch (fileTypeRegex) {
           case FileType.JSON:
             return new JsonHandler(fileContent);
+          case FileType.YAML:
+            return new YamlHandler(fileContent);
         }
       }
     }

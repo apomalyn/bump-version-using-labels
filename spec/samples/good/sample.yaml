@@ -1,0 +1,14 @@
+name: "dummy"
+token: 1.0.0
+private: true,
+description: |
+  long text
+main: "lib/main.js"
+# Comment
+double:
+  nested:
+    something: useless
+    token: "3.0.0+1"
+nested:
+  # Comment
+  token: "2.0.0-q"
