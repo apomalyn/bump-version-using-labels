@@ -3,7 +3,6 @@ import JsonHandler from '@fileHandlers/json-handler';
 import { NotFoundError } from '@utils/not-found-error';
 
 const samplesDir = './spec/samples';
-const goodSamplesDir = `${samplesDir}/good`;
 
 const rootToken = 'token';
 const nestedToken = 'nested.token';
@@ -13,16 +12,14 @@ const invalidToken = 'notFound';
 describe('JsonHandler', () => {
   describe('factory constructor', () => {
     it('should create a JsonHandler instance', () => {
-      const instance = FileHandlerFactory.fromFile(
-        `${goodSamplesDir}/sample.json`
-      );
+      const instance = FileHandlerFactory.fromFile(`${samplesDir}/sample.json`);
 
       expect(instance).toBeInstanceOf(JsonHandler);
     });
 
     it("should throw an exception when the file doesn't exists.", () => {
       expect(() =>
-        FileHandlerFactory.fromFile(`${goodSamplesDir}/not_found.json`)
+        FileHandlerFactory.fromFile(`${samplesDir}/not_found.json`)
       ).toThrow(Error);
     });
   });
@@ -157,7 +154,7 @@ function buildJsonHandler(
 ): JsonHandler {
   if (content === undefined) {
     return FileHandlerFactory.fromFile(
-      `${goodSamplesDir}/sample.json`
+      `${samplesDir}/sample.json`
     ) as JsonHandler;
   }
   return new JsonHandler(content);

@@ -1,9 +1,0 @@
-name: dummy
-description: Dummy file style pubspec
-token: 0.4.2
-environment:
-  sdk: ">=2.10.0 <3.0.0"
-
-don:
-  don:
-    don: Don

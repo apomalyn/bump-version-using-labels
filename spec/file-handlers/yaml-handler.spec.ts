@@ -3,7 +3,6 @@ import { NotFoundError } from '@utils/not-found-error';
 import YamlHandler from '@fileHandlers/yaml-handler';
 
 const samplesDir = './spec/samples';
-const goodSamplesDir = `${samplesDir}/good`;
 
 const rootToken = 'token';
 const nestedToken = 'nested.token';
@@ -13,16 +12,14 @@ const invalidToken = 'notFound';
 describe('YamlHandler', () => {
   describe('factory constructor', () => {
     it('should create a YamlHandler instance', () => {
-      const instance = FileHandlerFactory.fromFile(
-        `${goodSamplesDir}/sample.yaml`
-      );
+      const instance = FileHandlerFactory.fromFile(`${samplesDir}/sample.yaml`);
 
       expect(instance).toBeInstanceOf(YamlHandler);
     });
 
     it("should throw an exception when the file doesn't exists.", () => {
       expect(() =>
-        FileHandlerFactory.fromFile(`${goodSamplesDir}/not_found.yaml`)
+        FileHandlerFactory.fromFile(`${samplesDir}/not_found.yaml`)
       ).toThrow(Error);
     });
   });
@@ -90,7 +87,7 @@ describe('YamlHandler', () => {
       const instance = buildYamlHandler(sampleContent);
       const updateSampleContent =
         'description: Dummy template\n' +
-        'token: .0.0\n' +
+        'token: 1.0.0\n' +
         'double:\n' +
         '  nested:\n' +
         '    token: 2.0.0\n' +
@@ -137,7 +134,7 @@ function buildYamlHandler(
 ): YamlHandler {
   if (content === undefined) {
     return FileHandlerFactory.fromFile(
-      `${goodSamplesDir}/sample.yaml`
+      `${samplesDir}/sample.yaml`
     ) as YamlHandler;
   }
   return new YamlHandler(content);
