@@ -28,6 +28,13 @@ Let's do an example:
 4. We synchronize the PR#1 with the main branch
     - The action start and update the version to 1.1.1
 
+## Supported type of files
+
+Here is the list of files the action is supporting. If you don't find yours please fill an issue!
+
+- Yaml (.yaml, .yml)
+- Json (.json)
+
 ## Example workflow
 
 Here is a minimal example:
@@ -61,8 +68,8 @@ This will update the `package.json` file and comment the PR after each update.
 ## Inputs
 
 |      Parameter      |                                                                                                                          Description | required |                     default                    |
-|:-------------------:|-------------------------------------------------------------------------------------------------------------------------------------|:--------:|:----------------------------------------------:|
-|     `file_path`     |                                                 Path to the file that contains the version. The file should be a YAML or a JSON file |     ✅    |                                                |
+|:-------------------:|----------------------------------------------------------------------------------------------------------------------------------|:--------:|:----------------------------------------------:|
+|     `file_path`     |                                                 Path to the file that contains the version. |     ✅    |                                                |
 |    `patch_label`    |                                                                                   Label used to update the minor version (x.x.PATCH) |     ❌    |                `version: Patch`                |
 |    `minor_label`    |                                                                                   Label used to update the minor version (x.MINOR.0) |     ❌    |                `version: Minor`                |
 |    `major_label`    |                                                                                   Label used to update the minor version (MAJOR.0.0) |     ❌    |                `version: Major`                |
@@ -75,7 +82,6 @@ This will update the `package.json` file and comment the PR after each update.
 |   `commit_message`  |   Message used for the commit. You can use '{old}' and '{new}' to display the ancient and new version. Ignored if `commit` is false. |     ❌    |    `[BOT] Bump version from {old} to {new}`    |
 |  `commit_user_name` |                                                                         Name used for the commit user. Ignored if `commit` is false. |     ❌    |              `github-actions[bot]`             |
 | `commit_user_email` |                                                                Email address used for the commit user. Ignored if `commit` is false. |     ❌    | `github-actions[bot]@users.noreply.github.com` |
-|    `json_spacing`   |                                                        Set the spacing-level of the JSON. Only used if the file to update is a json. |     ❌    |                        2                       |
 
 ## Outputs
 
