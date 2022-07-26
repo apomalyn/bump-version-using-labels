@@ -1,9 +1,8 @@
 import FileHandlerFactory from '@fileHandlers/file-handler-factory';
 import JsonHandler from '@fileHandlers/json-handler';
-import { NotFoundError } from '../../src/utils/not-found-error';
+import { NotFoundError } from '@utils/not-found-error';
 
 const samplesDir = './spec/samples';
-const goodSamplesDir = `${samplesDir}/good`;
 
 const rootToken = 'token';
 const nestedToken = 'nested.token';
@@ -13,16 +12,14 @@ const invalidToken = 'notFound';
 describe('JsonHandler', () => {
   describe('factory constructor', () => {
     it('should create a JsonHandler instance', () => {
-      const instance = FileHandlerFactory.fromFile(
-        `${goodSamplesDir}/sample.json`
-      );
+      const instance = FileHandlerFactory.fromFile(`${samplesDir}/sample.json`);
 
       expect(instance).toBeInstanceOf(JsonHandler);
     });
 
     it("should throw an exception when the file doesn't exists.", () => {
       expect(() =>
-        FileHandlerFactory.fromFile(`${goodSamplesDir}/not_found.json`)
+        FileHandlerFactory.fromFile(`${samplesDir}/not_found.json`)
       ).toThrow(Error);
     });
   });
@@ -37,13 +34,13 @@ describe('JsonHandler', () => {
     it('should retrieve the value when the token is nested in the document', () => {
       const instance = buildJsonHandler();
 
-      expect(instance.get(nestedToken)).toBe('2.0.0');
+      expect(instance.get(nestedToken)).toBe('2.0.0-q');
     });
 
     it('should retrieve the value when the token is double nested in the document', () => {
       const instance = buildJsonHandler();
 
-      expect(instance.get(doubleNestedToken)).toBe('3.0.0');
+      expect(instance.get(doubleNestedToken)).toBe('3.0.0+1');
     });
 
     it('should retrieve the value when the token is double nested in the document', () => {
@@ -64,8 +61,8 @@ describe('JsonHandler', () => {
       '  "double": {\n' +
       '    "nested": {\n' +
       '      "token": "2.0.0"\n' +
-      '    }\n' +
-      '  }\n' +
+      '    },\n' +
+      '  },\n' +
       '  "nested": {\n' +
       '    "token": "3.0.0"\n' +
       '  },\n' +
@@ -85,8 +82,8 @@ describe('JsonHandler', () => {
         '  "double": {\n' +
         '    "nested": {\n' +
         '      "token": "2.0.0"\n' +
-        '    }\n' +
-        '  }\n' +
+        '    },\n' +
+        '  },\n' +
         '  "nested": {\n' +
         '    "token": "3.0.0"\n' +
         '  },\n' +
@@ -108,8 +105,8 @@ describe('JsonHandler', () => {
         '  "double": {\n' +
         '    "nested": {\n' +
         '      "token": "2.0.0"\n' +
-        '    }\n' +
-        '  }\n' +
+        '    },\n' +
+        '  },\n' +
         '  "nested": {\n' +
         '    "token": "10.0.0"\n' +
         '  },\n' +
@@ -131,8 +128,8 @@ describe('JsonHandler', () => {
         '  "double": {\n' +
         '    "nested": {\n' +
         '      "token": "10.0.0"\n' +
-        '    }\n' +
-        '  }\n' +
+        '    },\n' +
+        '  },\n' +
         '  "nested": {\n' +
         '    "token": "3.0.0"\n' +
         '  },\n' +
@@ -157,7 +154,7 @@ function buildJsonHandler(
 ): JsonHandler {
   if (content === undefined) {
     return FileHandlerFactory.fromFile(
-      `${goodSamplesDir}/sample.json`
+      `${samplesDir}/sample.json`
     ) as JsonHandler;
   }
   return new JsonHandler(content);

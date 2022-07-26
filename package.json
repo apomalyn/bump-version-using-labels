@@ -1,6 +1,6 @@
 {
   "name": "typescript-action",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "TypeScript template action",
   "main": "lib/main.js",
@@ -26,16 +26,16 @@
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.8.2",
-    "@actions/github": "^5.0.1",
+    "@actions/github": "^5.0.3",
     "@octokit/webhooks-definitions": "^3.67.3",
     "yaml": "^1.10.2"
   },
   "devDependencies": {
     "@types/jest": "^27.4.1",
-    "@types/node": "^17.0.40",
-    "@typescript-eslint/parser": "^5.27.0",
+    "@types/node": "^18.0.6",
+    "@typescript-eslint/parser": "^5.30.7",
     "@vercel/ncc": "^0.34.0",
-    "eslint": "^7.32.0",
+    "eslint": "^8.20.0",
     "eslint-import-resolver-typescript": "^3.2.5",
     "eslint-plugin-github": "^4.3.2",
     "eslint-plugin-import": "^2.26.0",
