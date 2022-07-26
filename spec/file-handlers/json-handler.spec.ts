@@ -1,6 +1,6 @@
 import FileHandlerFactory from '@fileHandlers/file-handler-factory';
 import JsonHandler from '@fileHandlers/json-handler';
-import { NotFoundError } from '../../src/utils/not-found-error';
+import { NotFoundError } from '@utils/not-found-error';
 
 const samplesDir = './spec/samples';
 const goodSamplesDir = `${samplesDir}/good`;
@@ -64,8 +64,8 @@ describe('JsonHandler', () => {
       '  "double": {\n' +
       '    "nested": {\n' +
       '      "token": "2.0.0"\n' +
-      '    }\n' +
-      '  }\n' +
+      '    },\n' +
+      '  },\n' +
       '  "nested": {\n' +
       '    "token": "3.0.0"\n' +
       '  },\n' +
@@ -85,8 +85,8 @@ describe('JsonHandler', () => {
         '  "double": {\n' +
         '    "nested": {\n' +
         '      "token": "2.0.0"\n' +
-        '    }\n' +
-        '  }\n' +
+        '    },\n' +
+        '  },\n' +
         '  "nested": {\n' +
         '    "token": "3.0.0"\n' +
         '  },\n' +
@@ -108,8 +108,8 @@ describe('JsonHandler', () => {
         '  "double": {\n' +
         '    "nested": {\n' +
         '      "token": "2.0.0"\n' +
-        '    }\n' +
-        '  }\n' +
+        '    },\n' +
+        '  },\n' +
         '  "nested": {\n' +
         '    "token": "10.0.0"\n' +
         '  },\n' +
@@ -131,8 +131,8 @@ describe('JsonHandler', () => {
         '  "double": {\n' +
         '    "nested": {\n' +
         '      "token": "10.0.0"\n' +
-        '    }\n' +
-        '  }\n' +
+        '    },\n' +
+        '  },\n' +
         '  "nested": {\n' +
         '    "token": "3.0.0"\n' +
         '  },\n' +

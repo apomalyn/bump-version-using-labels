@@ -6,6 +6,7 @@
   "main": "lib/main.js",
   "double": {
     "nested": {
+      "dummy": "3.0.0+1",
       "token": "3.0.0+1"
     }
   },

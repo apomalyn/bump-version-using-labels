@@ -3,8 +3,8 @@ import { FileType } from '@models/file-type';
 import { NotFoundError } from '@utils/not-found-error';
 
 export default class JsonHandler extends FileHandler {
-  private static readonly QUOTATION_REGEX = '(?:\\"|\\\')';
-  private static readonly EVERYTHING_REGEX = '([\\S\\s]+?)';
+  private static readonly QUOTATION_REGEX = '(?:"|\')';
+  private static readonly EVERYTHING_REGEX = '([\\S\\s]*?)';
 
   constructor(content: string) {
     super(content, FileType.JSON);
@@ -15,7 +15,7 @@ export default class JsonHandler extends FileHandler {
   }
 
   private static buildKeyValueRegex(key: string): string {
-    return `(${key})${JsonHandler.QUOTATION_REGEX}(?:\\:\\s*)${JsonHandler.QUOTATION_REGEX}?(?<value>[\\w\\s-._+]*)${JsonHandler.QUOTATION_REGEX}?`;
+    return `(${key})${JsonHandler.QUOTATION_REGEX}(?:\\:\\s*)${JsonHandler.QUOTATION_REGEX}?(?<value>[^"']*)${JsonHandler.QUOTATION_REGEX}?`;
   }
 
   private static buildRegex(keys: string[]): RegExp {
