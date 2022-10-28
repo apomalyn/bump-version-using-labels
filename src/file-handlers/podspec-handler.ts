@@ -6,9 +6,17 @@ export default class PodspecHandler extends FileHandler {
   private static readonly QUOTATION_REGEX = '(?:"|\')';
   private static readonly SPACE_REGEX = '([\\s]*?)';
   private static readonly VALUE_REGEX = `(?<value>[^"'\\n]*)${PodspecHandler.QUOTATION_REGEX}$`;
+  private static readonly PREFIX_REGEX = `Pod::Spec.new${PodspecHandler.SPACE_REGEX}do${PodspecHandler.SPACE_REGEX}\\|(?<prefix>\\w+)\\|`;
+
+  private _prefix: string;
 
   constructor(content: string) {
     super(content, FileType.PODSPEC);
+    const match = this.content.match(PodspecHandler.PREFIX_REGEX);
+    if (match === null) {
+      throw new NotFoundError(`Podspec prefix wasn't found.`);
+    }
+    this._prefix = match.groups!.prefix;
   }
 
   get(key: string): string {
@@ -30,7 +38,7 @@ export default class PodspecHandler extends FileHandler {
 
   private buildRegex(key: string): RegExp {
     const regexEscapedkey = key.replace('.', '\\.');
-    const regexp = `${regexEscapedkey}${PodspecHandler.SPACE_REGEX}=${PodspecHandler.SPACE_REGEX}${PodspecHandler.QUOTATION_REGEX}${PodspecHandler.VALUE_REGEX}`;
+    const regexp = `${this._prefix}\\.${regexEscapedkey}${PodspecHandler.SPACE_REGEX}=${PodspecHandler.SPACE_REGEX}${PodspecHandler.QUOTATION_REGEX}${PodspecHandler.VALUE_REGEX}`;
 
     return new RegExp(regexp, 'm');
   }

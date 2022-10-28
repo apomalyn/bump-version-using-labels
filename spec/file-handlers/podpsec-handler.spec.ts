@@ -4,12 +4,12 @@ import PodspecHandler from '@fileHandlers/podspec-handler';
 
 const samplesDir = './spec/samples';
 
-const token = 'spec.version';
-const spacedToken = 'spec.version_spaced';
-const noSpaceToken = 'spec.version_no_space';
-const multipleToken = 'spec.multiple.key.version';
-const multipleLinesToken = 'spec.different.lines.version';
-const invalidToken = 'wrong.version';
+const token = 'version';
+const spacedToken = 'version_spaced';
+const noSpaceToken = 'version_no_space';
+const multipleToken = 'multiple.key.version';
+const multipleLinesToken = 'different.lines.version';
+const invalidToken = 'not_a_version';
 
 describe('PodspecHandler', () => {
   describe('factory constructor', () => {
