@@ -65,6 +65,126 @@ describe('PodspecHandler', () => {
       expect(() => instance.get(invalidToken)).toThrow(NotFoundError);
     });
   });
+
+  describe('set', () => {
+    const sampleContent =
+      'Pod::Spec.new  do |spec|\n' +
+      'spec.version = "1.0.0"\n' +
+      'spec.version_spaced         =         "2.0.0-q"\n' +
+      '\n' +
+      'spec.multiple.key.version  =   "3.0.0+1"\n' +
+      '\n' +
+      'spec.version_no_space="4.0.0-q"\n' +
+      '\n' +
+      'spec.different.lines.version\n' +
+      '=\n' +
+      '    "5.0.0"';
+
+    const updatedValue = '10.0.0';
+
+    it('should change the value when the token and value are separated by one space', () => {
+      const instance = buildPodspecHandler(sampleContent);
+      const updateSampleContent =
+        'Pod::Spec.new  do |spec|\n' +
+        'spec.version = "10.0.0"\n' +
+        'spec.version_spaced         =         "2.0.0-q"\n' +
+        '\n' +
+        'spec.multiple.key.version  =   "3.0.0+1"\n' +
+        '\n' +
+        'spec.version_no_space="4.0.0-q"\n' +
+        '\n' +
+        'spec.different.lines.version\n' +
+        '=\n' +
+        '    "5.0.0"';
+
+      instance.set(token, updatedValue);
+      expect(instance.getContent()).toBe(updateSampleContent);
+    });
+
+    it('should change the value when the token and value are separated by multiple spaces', () => {
+      const instance = buildPodspecHandler(sampleContent);
+      const updateSampleContent =
+        'Pod::Spec.new  do |spec|\n' +
+        'spec.version = "1.0.0"\n' +
+        'spec.version_spaced         =         "10.0.0"\n' +
+        '\n' +
+        'spec.multiple.key.version  =   "3.0.0+1"\n' +
+        '\n' +
+        'spec.version_no_space="4.0.0-q"\n' +
+        '\n' +
+        'spec.different.lines.version\n' +
+        '=\n' +
+        '    "5.0.0"';
+
+      instance.set(spacedToken, updatedValue);
+      expect(instance.getContent()).toBe(updateSampleContent);
+    });
+
+    it('should change the value when the token is composed of dot e.g. spec.test.version', () => {
+      const instance = buildPodspecHandler(sampleContent);
+      const updateSampleContent =
+        'Pod::Spec.new  do |spec|\n' +
+        'spec.version = "1.0.0"\n' +
+        'spec.version_spaced         =         "2.0.0-q"\n' +
+        '\n' +
+        'spec.multiple.key.version  =   "10.0.0"\n' +
+        '\n' +
+        'spec.version_no_space="4.0.0-q"\n' +
+        '\n' +
+        'spec.different.lines.version\n' +
+        '=\n' +
+        '    "5.0.0"';
+
+      instance.set(multipleToken, updatedValue);
+      expect(instance.getContent()).toBe(updateSampleContent);
+    });
+
+    it('should change the value when the token and value are not separated by spaces', () => {
+      const instance = buildPodspecHandler(sampleContent);
+      const updateSampleContent =
+        'Pod::Spec.new  do |spec|\n' +
+        'spec.version = "1.0.0"\n' +
+        'spec.version_spaced         =         "2.0.0-q"\n' +
+        '\n' +
+        'spec.multiple.key.version  =   "3.0.0+1"\n' +
+        '\n' +
+        'spec.version_no_space="10.0.0"\n' +
+        '\n' +
+        'spec.different.lines.version\n' +
+        '=\n' +
+        '    "5.0.0"';
+
+      instance.set(noSpaceToken, updatedValue);
+      expect(instance.getContent()).toBe(updateSampleContent);
+    });
+
+    it('should change the value when the token and value are separated by multiple spaces and lines', () => {
+      const instance = buildPodspecHandler(sampleContent);
+      const updateSampleContent =
+        'Pod::Spec.new  do |spec|\n' +
+        'spec.version = "1.0.0"\n' +
+        'spec.version_spaced         =         "2.0.0-q"\n' +
+        '\n' +
+        'spec.multiple.key.version  =   "3.0.0+1"\n' +
+        '\n' +
+        'spec.version_no_space="4.0.0-q"\n' +
+        '\n' +
+        'spec.different.lines.version\n' +
+        '=\n' +
+        '    "10.0.0"';
+
+      instance.set(multipleLinesToken, updatedValue);
+      expect(instance.getContent()).toBe(updateSampleContent);
+    });
+
+    it('should change the value when the token is double nested in the document', () => {
+      const instance = buildPodspecHandler(sampleContent);
+
+      expect(() => instance.set(invalidToken, updatedValue)).toThrow(
+        NotFoundError
+      );
+    });
+  });
 });
 
 function buildPodspecHandler(
