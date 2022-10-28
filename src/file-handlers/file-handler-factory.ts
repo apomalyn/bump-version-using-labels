@@ -3,6 +3,7 @@ import { FileHandler } from './file-handler';
 import { FileType } from '@models/file-type';
 import JsonHandler from './json-handler';
 import YamlHandler from '@fileHandlers/yaml-handler';
+import PodspecHandler from '@fileHandlers/podspec-handler';
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export default class FileHandlerFactory {
@@ -20,6 +21,8 @@ export default class FileHandlerFactory {
             return new JsonHandler(fileContent);
           case FileType.YAML:
             return new YamlHandler(fileContent);
+          case FileType.PODSPEC:
+            return new PodspecHandler(fileContent);
         }
       }
     }
