@@ -9337,6 +9337,11 @@ const errors_1 = __nccwpck_require__(2579);
 class PodspecHandler extends file_handler_1.FileHandler {
     constructor(content) {
         super(content, file_type_1.FileType.PODSPEC);
+        const match = this.content.match(PodspecHandler.PREFIX_REGEX);
+        if (match === null) {
+            throw new errors_1.NotFoundError(`Podspec prefix wasn't found.`);
+        }
+        this._prefix = match.groups.prefix;
     }
     get(key) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -9353,7 +9358,7 @@ class PodspecHandler extends file_handler_1.FileHandler {
     }
     buildRegex(key) {
         const regexEscapedkey = key.replace('.', '\\.');
-        const regexp = `${regexEscapedkey}${PodspecHandler.SPACE_REGEX}=${PodspecHandler.SPACE_REGEX}${PodspecHandler.QUOTATION_REGEX}${PodspecHandler.VALUE_REGEX}`;
+        const regexp = `${this._prefix}\\.${regexEscapedkey}${PodspecHandler.SPACE_REGEX}=${PodspecHandler.SPACE_REGEX}${PodspecHandler.QUOTATION_REGEX}${PodspecHandler.VALUE_REGEX}`;
         return new RegExp(regexp, 'm');
     }
     /**
@@ -9374,6 +9379,7 @@ exports["default"] = PodspecHandler;
 PodspecHandler.QUOTATION_REGEX = '(?:"|\')';
 PodspecHandler.SPACE_REGEX = '([\\s]*?)';
 PodspecHandler.VALUE_REGEX = `(?<value>[^"'\\n]*)${PodspecHandler.QUOTATION_REGEX}$`;
+PodspecHandler.PREFIX_REGEX = `Pod::Spec.new${PodspecHandler.SPACE_REGEX}do${PodspecHandler.SPACE_REGEX}\\|(?<prefix>\\w+)\\|`;
 
 
 /***/ }),
