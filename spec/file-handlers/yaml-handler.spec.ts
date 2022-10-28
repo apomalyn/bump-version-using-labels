@@ -1,5 +1,5 @@
 import FileHandlerFactory from '@fileHandlers/file-handler-factory';
-import { NotFoundError } from '@utils/not-found-error';
+import { NotFoundError } from '@utils/errors';
 import YamlHandler from '@fileHandlers/yaml-handler';
 
 const samplesDir = './spec/samples';
@@ -43,7 +43,7 @@ describe('YamlHandler', () => {
       expect(instance.get(doubleNestedToken)).toBe('3.0.0+1');
     });
 
-    it('should retrieve the value when the token is double nested in the document', () => {
+    it('should not retrieve the value when the token is not in the document', () => {
       const instance = buildYamlHandler();
 
       expect(() => instance.get(invalidToken)).toThrow(NotFoundError);

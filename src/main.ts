@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import FileHandlerFactory from '@fileHandlers/file-handler-factory';
 import GithubService from './services/github-service';
-import { NotFoundError } from '@utils/not-found-error';
+import { NotFoundError } from '@utils/errors';
 import { SemanticVersion } from '@models/semantic-version';
 import { VersionType } from '@models/version-type';
 
