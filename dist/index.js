@@ -46,7 +46,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const file_handler_factory_1 = __importDefault(__nccwpck_require__(6617));
 const github_service_1 = __importDefault(__nccwpck_require__(2404));
-const not_found_error_1 = __nccwpck_require__(3171);
+const errors_1 = __nccwpck_require__(2579);
 const semantic_version_1 = __nccwpck_require__(7829);
 const version_type_1 = __nccwpck_require__(407);
 const github_service = new github_service_1.default();
@@ -134,7 +134,7 @@ function run() {
             core.setOutput('version', reference_version.raw);
         }
         catch (error) {
-            if (error instanceof not_found_error_1.NotFoundError)
+            if (error instanceof errors_1.NotFoundError)
                 core.setFailed(`Tag ${look_for} not found in ${file_path}`);
             else if (error instanceof Error)
                 core.setFailed(error);
@@ -9188,6 +9188,7 @@ const fs_1 = __nccwpck_require__(7147);
 const file_type_1 = __nccwpck_require__(8519);
 const json_handler_1 = __importDefault(__nccwpck_require__(2467));
 const yaml_handler_1 = __importDefault(__nccwpck_require__(1503));
+const podspec_handler_1 = __importDefault(__nccwpck_require__(6323));
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 class FileHandlerFactory {
     static fromFile(filePath) {
@@ -9202,6 +9203,8 @@ class FileHandlerFactory {
                         return new json_handler_1.default(fileContent);
                     case file_type_1.FileType.YAML:
                         return new yaml_handler_1.default(fileContent);
+                    case file_type_1.FileType.PODSPEC:
+                        return new podspec_handler_1.default(fileContent);
                 }
             }
         }
@@ -9259,7 +9262,7 @@ exports.FileHandler = FileHandler;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const file_handler_1 = __nccwpck_require__(9881);
 const file_type_1 = __nccwpck_require__(8519);
-const not_found_error_1 = __nccwpck_require__(3171);
+const errors_1 = __nccwpck_require__(2579);
 class JsonHandler extends file_handler_1.FileHandler {
     constructor(content) {
         super(content, file_type_1.FileType.JSON);
@@ -9304,7 +9307,7 @@ class JsonHandler extends file_handler_1.FileHandler {
         const regex = JsonHandler.buildRegex(parsedKey);
         const allMatch = this.content.matchAll(regex);
         if (allMatch === undefined) {
-            throw new not_found_error_1.NotFoundError(`${key} wasn't found.`);
+            throw new errors_1.NotFoundError(`${key} wasn't found.`);
         }
         // Check to see that the match start at level 1
         for (const match of allMatch) {
@@ -9312,12 +9315,65 @@ class JsonHandler extends file_handler_1.FileHandler {
                 return match;
             }
         }
-        throw new not_found_error_1.NotFoundError(`${key} wasn't found.`);
+        throw new errors_1.NotFoundError(`${key} wasn't found.`);
     }
 }
 exports["default"] = JsonHandler;
 JsonHandler.QUOTATION_REGEX = '(?:"|\')';
 JsonHandler.EVERYTHING_REGEX = '([\\S\\s]*?)';
+
+
+/***/ }),
+
+/***/ 6323:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const file_handler_1 = __nccwpck_require__(9881);
+const file_type_1 = __nccwpck_require__(8519);
+const errors_1 = __nccwpck_require__(2579);
+class PodspecHandler extends file_handler_1.FileHandler {
+    constructor(content) {
+        super(content, file_type_1.FileType.PODSPEC);
+    }
+    get(key) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return this.searchKey(key).groups.value;
+    }
+    set(key, value) {
+        const match = this.searchKey(key);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const originalValue = match.groups.value;
+        // Update the value in the original match
+        const updated = match[0].replace(originalValue, value);
+        // Inject the updated value
+        this.content = this.content.replace(match[0], updated);
+    }
+    buildRegex(key) {
+        const regexEscapedkey = key.replace('.', '\\.');
+        const regexp = `${regexEscapedkey}${PodspecHandler.SPACE_REGEX}=${PodspecHandler.SPACE_REGEX}${PodspecHandler.QUOTATION_REGEX}${PodspecHandler.VALUE_REGEX}`;
+        return new RegExp(regexp, 'm');
+    }
+    /**
+     * Search the key passed in the document and return the RegExpMatch
+     * This RegExpMatch contains one group called 'value' which is the value of the
+     * key passed.
+     */
+    searchKey(key) {
+        const regex = this.buildRegex(key);
+        const match = this.content.match(regex);
+        if (match === null) {
+            throw new errors_1.NotFoundError(`${key} wasn't found.`);
+        }
+        return match;
+    }
+}
+exports["default"] = PodspecHandler;
+PodspecHandler.QUOTATION_REGEX = '(?:"|\')';
+PodspecHandler.SPACE_REGEX = '([\\s]*?)';
+PodspecHandler.VALUE_REGEX = `(?<value>[^"'\\n]*)${PodspecHandler.QUOTATION_REGEX}$`;
 
 
 /***/ }),
@@ -9330,7 +9386,7 @@ JsonHandler.EVERYTHING_REGEX = '([\\S\\s]*?)';
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const file_handler_1 = __nccwpck_require__(9881);
 const file_type_1 = __nccwpck_require__(8519);
-const not_found_error_1 = __nccwpck_require__(3171);
+const errors_1 = __nccwpck_require__(2579);
 class YamlHandler extends file_handler_1.FileHandler {
     constructor(content) {
         super(content, file_type_1.FileType.YAML);
@@ -9374,7 +9430,7 @@ class YamlHandler extends file_handler_1.FileHandler {
         const regex = YamlHandler.buildRegex(parsedKey);
         const match = this.content.match(regex);
         if (match === null) {
-            throw new not_found_error_1.NotFoundError(`${key} wasn't found.`);
+            throw new errors_1.NotFoundError(`${key} wasn't found.`);
         }
         return match;
     }
@@ -9399,6 +9455,7 @@ var FileType;
 (function (FileType) {
     FileType["JSON"] = ".json$";
     FileType["YAML"] = ".y[a]?ml$";
+    FileType["PODSPEC"] = ".podspec$";
 })(FileType = exports.FileType || (exports.FileType = {}));
 
 
@@ -9504,7 +9561,7 @@ var VersionType;
 
 /***/ }),
 
-/***/ 3171:
+/***/ 2579:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
