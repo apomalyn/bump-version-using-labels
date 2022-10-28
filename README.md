@@ -68,21 +68,21 @@ This will update the `package.json` file and comment the PR after each update.
 
 ## Inputs
 
-|      Parameter      |                                                                                                                          Description | required |                     default                    |
-|:-------------------:|----------------------------------------------------------------------------------------------------------------------------------|:--------:|:----------------------------------------------:|
-|     `file_path`     |                                                 Path to the file that contains the version. |     ✅    |                                                |
-|    `patch_label`    |                                                                                   Label used to update the minor version (x.x.PATCH) |     ❌    |                `version: Patch`                |
-|    `minor_label`    |                                                                                   Label used to update the minor version (x.MINOR.0) |     ❌    |                `version: Minor`                |
-|    `major_label`    |                                                                                   Label used to update the minor version (MAJOR.0.0) |     ❌    |                `version: Major`                |
-|    `look_for_tag`   |                                                                                           Key in the file that contains the version. |     ❌    |                    `version`                   |
-|   `use_tag_as_ref`  |                                                                      Use the tags of the repository to determine the latest version. |     ❌    |                      false                     |
-|  `reference_branch` |                                  Use the specified branch to determine the latest version used. Ignored if `use_tag_as_ref` is true. |     ❌    |                     `main`                     |
-|      `comment`      |                            Comment the pull request when the version is update or when there is an error. Set to `false` to disable. |     ❌    |                      false                     |
-|  `comment_message`  | Message used for the comment. You can use '{old}' and '{new}' to display the ancient and new version. Ignored if `comment` is false. |     ❌    |       `Bump version from {old} to {new}`       |
-|       `commit`      |                                                                                  Commit the changed file. Set to `false` to disable. |     ❌    |                      true                      |
-|   `commit_message`  |   Message used for the commit. You can use '{old}' and '{new}' to display the ancient and new version. Ignored if `commit` is false. |     ❌    |    `[BOT] Bump version from {old} to {new}`    |
-|  `commit_user_name` |                                                                         Name used for the commit user. Ignored if `commit` is false. |     ❌    |              `github-actions[bot]`             |
-| `commit_user_email` |                                                                Email address used for the commit user. Ignored if `commit` is false. |     ❌    | `github-actions[bot]@users.noreply.github.com` |
+|      Parameter      | Description                                                                                                                                                     | required |                     default                    |
+|:-------------------:|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------:|:----------------------------------------------:|
+|     `file_path`     | Path to the file that contains the version.                                                                                                                     |     ✅    |                                                |
+|    `patch_label`    | Label used to update the minor version (x.x.PATCH)                                                                                                              |     ❌    |                `version: Patch`                |
+|    `minor_label`    | Label used to update the minor version (x.MINOR.0)                                                                                                              |     ❌    |                `version: Minor`                |
+|    `major_label`    | Label used to update the minor version (MAJOR.0.0)                                                                                                              |     ❌    |                `version: Major`                |
+|    `look_for_key`   | Key in the file that contains the version. For Podspec files, no need to specify the prefix of (`Pod::Spec.new do &#124;<prefix>&#124;`) the action detects it. |     ❌    |                    `version`                   |
+|   `use_tag_as_ref`  | Use the tags of the repository to determine the latest version.                                                                                                 |     ❌    |                      false                     |
+|  `reference_branch` | Use the specified branch to determine the latest version used. Ignored if `use_tag_as_ref` is true.                                                             |     ❌    |                     `main`                     |
+|      `comment`      | Comment the pull request when the version is update or when there is an error. Set to `false` to disable.                                                       |     ❌    |                      false                     |
+|  `comment_message`  | Message used for the comment. You can use '{old}' and '{new}' to display the ancient and new version. Ignored if `comment` is false.                            |     ❌    |       `Bump version from {old} to {new}`       |
+|       `commit`      | Commit the changed file. Set to `false` to disable.                                                                                                             |     ❌    |                      true                      |
+|   `commit_message`  | Message used for the commit. You can use '{old}' and '{new}' to display the ancient and new version. Ignored if `commit` is false.                              |     ❌    |    `[BOT] Bump version from {old} to {new}`    |
+|  `commit_user_name` | Name used for the commit user. Ignored if `commit` is false.                                                                                                    |     ❌    |              `github-actions[bot]`             |
+| `commit_user_email` | Email address used for the commit user. Ignored if `commit` is false.                                                                                           |     ❌    | `github-actions[bot]@users.noreply.github.com` |
 
 ## Outputs
 
