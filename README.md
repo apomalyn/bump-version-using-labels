@@ -34,6 +34,7 @@ Here is the list of files the action is supporting. If you don't find yours plea
 
 - Yaml (.yaml, .yml)
 - Json (.json)
+- Podspec (.podspec)
 
 ## Example workflow
 

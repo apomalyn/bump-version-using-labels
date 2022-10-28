@@ -1,6 +1,6 @@
 import FileHandlerFactory from '@fileHandlers/file-handler-factory';
 import JsonHandler from '@fileHandlers/json-handler';
-import { NotFoundError } from '@utils/not-found-error';
+import { NotFoundError } from '@utils/errors';
 
 const samplesDir = './spec/samples';
 

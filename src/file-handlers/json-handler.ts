@@ -1,6 +1,6 @@
 import { FileHandler } from './file-handler';
 import { FileType } from '@models/file-type';
-import { NotFoundError } from '@utils/not-found-error';
+import { NotFoundError } from '@utils/errors';
 
 export default class JsonHandler extends FileHandler {
   private static readonly QUOTATION_REGEX = '(?:"|\')';
