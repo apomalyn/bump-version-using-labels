@@ -15,8 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          npm install
+          gh pr edit ${{ github.event.number }} --add-label 'Increase: minor version'
       - run: |
+          npm install
           npm run build
           npm run package
       - name: Use tags as reference
