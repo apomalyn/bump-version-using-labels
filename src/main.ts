@@ -37,16 +37,16 @@ async function run(): Promise<void> {
     }
 
     const handler = FileHandlerFactory.fromFile(file_path);
-    const version = SemanticVersion.fromString(handler.get(look_for));
+    const local_version = SemanticVersion.fromString(handler.get(look_for));
 
-    core.debug(`Raw version parsed to ${version.raw}`);
+    core.debug(`Local raw version parsed to ${local_version.raw}`);
 
     let reference_version = await getReferenceVersion(file_path, look_for);
 
     // Retrieving the reference version failed
     if (reference_version === undefined) {
       core.info(`Reference version not found, will use the local one`);
-      reference_version = version;
+      reference_version = local_version;
     }
 
     let increased = false;
@@ -82,7 +82,7 @@ async function run(): Promise<void> {
       return;
     }
 
-    if (reference_version.raw === version.raw) {
+    if (reference_version.raw === local_version.raw) {
       core.info(`Version already updated. Skipping.`);
     } else {
       handler.set(look_for, reference_version.raw);
@@ -93,7 +93,7 @@ async function run(): Promise<void> {
           file_path,
           core
             .getInput('commit_message')
-            .replace(OLD_TAG, version.raw)
+            .replace(OLD_TAG, local_version.raw)
             .replace(NEW_TAG, reference_version.raw),
           {
             name: core.getInput('commit_user_name'),
@@ -104,7 +104,7 @@ async function run(): Promise<void> {
           await github_service.createComment(
             core
               .getInput('comment_message')
-              .replace(OLD_TAG, version.raw)
+              .replace(OLD_TAG, local_version.raw)
               .replace(NEW_TAG, reference_version.raw)
           );
         }
@@ -112,6 +112,7 @@ async function run(): Promise<void> {
     }
 
     core.setOutput('version', reference_version.raw);
+    core.setOutput('has_changed', increased);
   } catch (error) {
     if (error instanceof NotFoundError)
       core.setFailed(`Tag ${look_for} not found in ${file_path}`);

@@ -59,6 +59,8 @@ inputs:
 outputs:
   version:
     description: Current/Updated version.
+  has_changed:
+    description: Boolean to indicate if the version have changed.
 
 runs:
   using: 'node16'
