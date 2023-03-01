@@ -53,6 +53,7 @@ const helper_1 = __nccwpck_require__(4862);
 const OLD_TAG = '{old}';
 const NEW_TAG = '{new}';
 const github_service = new github_service_1.default();
+const settings = (0, helper_1.getSettings)();
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         if (github.context.eventName !== 'pull_request') {
@@ -60,7 +61,6 @@ function run() {
             return;
         }
         const payload = github.context.payload.pull_request;
-        const settings = (0, helper_1.getSettings)();
         const labels = Object.values(settings.labels);
         try {
             core.debug('Start action');
@@ -87,7 +87,7 @@ function run() {
                     if (increased) {
                         message = `There are multiple version labels on the PR. Please use only one.`;
                         core.setFailed(message);
-                        if (settings.comment) {
+                        if (settings.comment.comment) {
                             yield github_service.createComment(payload.number, message);
                         }
                         return;
@@ -99,7 +99,7 @@ function run() {
             }
             if (!increased) {
                 core.setFailed(message);
-                if (settings.comment) {
+                if (settings.comment.comment) {
                     yield github_service.createComment(payload.number, message);
                 }
                 return;
@@ -110,14 +110,14 @@ function run() {
             else {
                 handler.set(settings.lookForKey, reference_version.raw);
                 handler.saveToFile(settings.filePath);
-                if (settings.comment) {
-                    yield github_service.commitFile(settings.filePath, settings.comment.message
+                if (settings.commit.commit) {
+                    yield github_service.commitFile(settings.filePath, settings.commit.message
                         .replace(OLD_TAG, local_version.raw)
                         .replace(NEW_TAG, reference_version.raw), {
-                        name: core.getInput('commit_user_name'),
-                        email: core.getInput('commit_user_email')
+                        name: settings.commit.username,
+                        email: settings.commit.email
                     }, payload.head.ref);
-                    if (settings.comment) {
+                    if (settings.comment.comment) {
                         yield github_service.createComment(payload.number, settings.comment.message
                             .replace(OLD_TAG, local_version.raw)
                             .replace(NEW_TAG, reference_version.raw));
@@ -137,9 +137,9 @@ function run() {
 }
 function getReferenceVersion(file_path, look_for_key) {
     return __awaiter(this, void 0, void 0, function* () {
-        const use_tag_as_ref = core.getBooleanInput('use_tag_as_ref');
+        const use_tag_as_ref = settings.useTag;
         if (!use_tag_as_ref) {
-            const branch_name = core.getInput('reference_branch');
+            const branch_name = settings.referenceBranch;
             return getRefVersionFromBranch(branch_name, file_path, look_for_key);
         }
         else {
