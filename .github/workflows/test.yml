@@ -23,9 +23,9 @@ jobs:
         uses: ./
         with:
           file_path: 'package.json'
-          major_label: 'Increase: major version'
-          minor_label: 'Increase: minor version'
-          patch_label: 'Increate: patch version'
+          major_label: 'TEST: major version'
+          minor_label: 'TEST: minor version'
+          patch_label: 'TEST: patch version'
           use_tag_as_ref: true
           comment: false
           commit: false

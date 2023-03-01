@@ -1,4 +1,4 @@
-export default interface IGithubGetContentPayload {
+export default interface GithubGetContentPayload {
   type: string;
 
   encoding: string;

@@ -49,34 +49,29 @@ const github_service_1 = __importDefault(__nccwpck_require__(2404));
 const errors_1 = __nccwpck_require__(2579);
 const semantic_version_1 = __nccwpck_require__(7829);
 const version_type_1 = __nccwpck_require__(407);
-const github_service = new github_service_1.default();
+const helper_1 = __nccwpck_require__(4862);
 const OLD_TAG = '{old}';
 const NEW_TAG = '{new}';
+const github_service = new github_service_1.default();
+const settings = (0, helper_1.getSettings)();
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         if (github.context.eventName !== 'pull_request') {
             core.setFailed("Event isn't a pull request. This action can only work on pull request.");
             return;
         }
-        const look_for = core.getInput('look_for_key');
-        const file_path = core.getInput('file_path');
+        const payload = github.context.payload.pull_request;
+        const labels = Object.values(settings.labels);
         try {
             core.debug('Start action');
-            const comment_pr = core.getBooleanInput('comment');
-            const commit_pr = core.getBooleanInput('commit');
-            const labels = [
-                core.getInput('patch_label'),
-                core.getInput('minor_label'),
-                core.getInput('major_label')
-            ];
-            if (file_path === '') {
+            if (settings.filePath === '') {
                 core.setFailed(`file_path need to be specified.`);
                 return;
             }
-            const handler = file_handler_factory_1.default.fromFile(file_path);
-            const local_version = semantic_version_1.SemanticVersion.fromString(handler.get(look_for));
+            const handler = file_handler_factory_1.default.fromFile(settings.filePath);
+            const local_version = semantic_version_1.SemanticVersion.fromString(handler.get(settings.lookForKey));
             core.debug(`Local raw version parsed to ${local_version.raw}`);
-            let reference_version = yield getReferenceVersion(file_path, look_for);
+            let reference_version = yield getReferenceVersion(settings.filePath, settings.lookForKey);
             // Retrieving the reference version failed
             if (reference_version === undefined) {
                 core.info(`Reference version not found, will use the local one`);
@@ -86,14 +81,14 @@ function run() {
             let message = `There is no version labels on the PR. 
     Please use one of the following: ${labels.join(',')}`;
             core.debug('Start label search');
-            for (const label of github_service.labels) {
+            for (const label of payload.labels) {
                 const index = labels.indexOf(label.name);
                 if (index !== -1) {
                     if (increased) {
                         message = `There are multiple version labels on the PR. Please use only one.`;
                         core.setFailed(message);
-                        if (comment_pr) {
-                            yield github_service.createComment(message);
+                        if (settings.comment.comment) {
+                            yield github_service.createComment(payload.number, message);
                         }
                         return;
                     }
@@ -104,8 +99,8 @@ function run() {
             }
             if (!increased) {
                 core.setFailed(message);
-                if (comment_pr) {
-                    yield github_service.createComment(message);
+                if (settings.comment.comment) {
+                    yield github_service.createComment(payload.number, message);
                 }
                 return;
             }
@@ -113,19 +108,17 @@ function run() {
                 core.info(`Version already updated. Skipping.`);
             }
             else {
-                handler.set(look_for, reference_version.raw);
-                handler.saveToFile(file_path);
-                if (commit_pr) {
-                    yield github_service.commitFile(file_path, core
-                        .getInput('commit_message')
+                handler.set(settings.lookForKey, reference_version.raw);
+                handler.saveToFile(settings.filePath);
+                if (settings.commit.commit) {
+                    yield github_service.commitFile(settings.filePath, settings.commit.message
                         .replace(OLD_TAG, local_version.raw)
                         .replace(NEW_TAG, reference_version.raw), {
-                        name: core.getInput('commit_user_name'),
-                        email: core.getInput('commit_user_email')
-                    });
-                    if (comment_pr) {
-                        yield github_service.createComment(core
-                            .getInput('comment_message')
+                        name: settings.commit.username,
+                        email: settings.commit.email
+                    }, payload.head.ref);
+                    if (settings.comment.comment) {
+                        yield github_service.createComment(payload.number, settings.comment.message
                             .replace(OLD_TAG, local_version.raw)
                             .replace(NEW_TAG, reference_version.raw));
                     }
@@ -136,7 +129,7 @@ function run() {
         }
         catch (error) {
             if (error instanceof errors_1.NotFoundError)
-                core.setFailed(`Tag ${look_for} not found in ${file_path}`);
+                core.setFailed(`Tag ${settings.lookForKey} not found in ${settings.filePath}`);
             else if (error instanceof Error)
                 core.setFailed(error);
         }
@@ -144,9 +137,9 @@ function run() {
 }
 function getReferenceVersion(file_path, look_for_key) {
     return __awaiter(this, void 0, void 0, function* () {
-        const use_tag_as_ref = core.getBooleanInput('use_tag_as_ref');
+        const use_tag_as_ref = settings.useTag;
         if (!use_tag_as_ref) {
-            const branch_name = core.getInput('reference_branch');
+            const branch_name = settings.referenceBranch;
             return getRefVersionFromBranch(branch_name, file_path, look_for_key);
         }
         else {
@@ -243,21 +236,17 @@ const helper = __importStar(__nccwpck_require__(698));
 const fs_1 = __nccwpck_require__(7147);
 class GithubService {
     constructor() {
-        this._octokit = helper.getOctokitAuth();
-        this._eventPayload = github.context.payload;
-    }
-    get labels() {
-        return this._eventPayload.pull_request.labels;
+        this.octokit = helper.getOctokitAuth();
     }
     /**
      * Create a comment on the pull request.
      */
-    createComment(message) {
+    createComment(issueNumber, message) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this._octokit.rest.issues.createComment({
+            yield this.octokit.rest.issues.createComment({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
-                issue_number: this._eventPayload.pull_request.number,
+                issue_number: issueNumber,
                 body: message
             });
         });
@@ -269,7 +258,7 @@ class GithubService {
      */
     getFileContentForBranch(file_path, branch_name) {
         return __awaiter(this, void 0, void 0, function* () {
-            const branch_exist = yield this._octokit.rest.repos.getBranch({
+            const branch_exist = yield this.octokit.rest.repos.getBranch({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
                 branch: branch_name
@@ -278,7 +267,7 @@ class GithubService {
                 throw new ReferenceError(`Reference branch ${branch_name} not found`);
             }
             core.debug(`Reference version will be searched in ${branch_name} branch`);
-            const reference_file_response = yield this._octokit.rest.repos.getContent({
+            const reference_file_response = yield this.octokit.rest.repos.getContent({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
                 path: file_path,
@@ -292,7 +281,7 @@ class GithubService {
     }
     getRepoTags() {
         return __awaiter(this, void 0, void 0, function* () {
-            const tags_list_response = yield this._octokit.rest.repos.listTags({
+            const tags_list_response = yield this.octokit.rest.repos.listTags({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo
             });
@@ -302,22 +291,22 @@ class GithubService {
             return tags_list_response.data;
         });
     }
-    commitFile(file_path, commit_message, committer, author, branch_name) {
+    commitFile(file_path, commit_message, committer, branch_name, author) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!(0, fs_1.existsSync)(file_path)) {
                 throw new Error(`${file_path} doesn't exists.`);
             }
             const file_content = (0, fs_1.readFileSync)(file_path, 'utf8');
             core.info('Start commit process');
-            const blob = yield this._octokit.rest.git.createBlob({
+            const blob = yield this.octokit.rest.git.createBlob({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
                 content: file_content,
                 encoding: 'utf8'
             });
-            const current_commit_sha = this._eventPayload.pull_request.head.sha;
-            core.debug(`Last commit sha: ${current_commit_sha}`);
-            const tree = yield this._octokit.rest.git.createTree({
+            const current_commit = (yield this.octokit.request(`GET /repos/${github.context.repo.owner}/${github.context.repo.repo}/commits/${branch_name}`)).data;
+            core.debug(`Last commit: ${current_commit.sha}`);
+            const tree = yield this.octokit.rest.git.createTree({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
                 tree: [
@@ -328,7 +317,7 @@ class GithubService {
                         sha: blob.data.sha
                     }
                 ],
-                base_tree: yield this.getTreeShaForCommit(current_commit_sha)
+                base_tree: yield this.getTreeShaForCommit(current_commit.sha)
             });
             if (author === undefined) {
                 author = {
@@ -336,20 +325,20 @@ class GithubService {
                     email: `${github.context.actor}@users.noreply.github.com`
                 };
             }
-            const commit = yield this._octokit.rest.git.createCommit({
+            const commit = yield this.octokit.rest.git.createCommit({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
                 message: commit_message,
                 tree: tree.data.sha,
-                parents: [current_commit_sha],
+                parents: [current_commit.sha],
                 committer,
                 author
             });
             core.debug(`New commit created, sha: ${commit.data.sha}`);
-            yield this._octokit.rest.git.updateRef({
+            yield this.octokit.rest.git.updateRef({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
-                ref: `heads/${branch_name !== null && branch_name !== void 0 ? branch_name : this._eventPayload.pull_request.head.ref}`,
+                ref: `heads/${branch_name}`,
                 sha: commit.data.sha
             });
             core.info(`Commit pushed! (sha: ${commit.data.sha})`);
@@ -357,7 +346,7 @@ class GithubService {
     }
     getTreeShaForCommit(sha) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { data: commit_data } = yield this._octokit.rest.git.getCommit({
+            const { data: commit_data } = yield this.octokit.rest.git.getCommit({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
                 commit_sha: sha
@@ -400,8 +389,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getOctokitAuth = void 0;
+exports.getSettings = exports.getOctokitAuth = void 0;
 const github = __importStar(__nccwpck_require__(5438));
+const core = __importStar(__nccwpck_require__(2186));
 function getOctokitAuth() {
     const githubToken = process.env['GITHUB_TOKEN'];
     if (githubToken === undefined) {
@@ -410,6 +400,30 @@ function getOctokitAuth() {
     return github.getOctokit(githubToken);
 }
 exports.getOctokitAuth = getOctokitAuth;
+function getSettings() {
+    return {
+        labels: {
+            patch: core.getInput('patch_label'),
+            minor: core.getInput('minor_label'),
+            major: core.getInput('major_label')
+        },
+        comment: {
+            comment: core.getBooleanInput('comment'),
+            message: core.getInput('comment_message')
+        },
+        commit: {
+            commit: core.getBooleanInput('commit'),
+            message: core.getInput('commit_message'),
+            username: core.getInput('commit_user_name'),
+            email: core.getInput('commit_user_email')
+        },
+        filePath: core.getInput('file_path'),
+        lookForKey: core.getInput('look_for_key'),
+        referenceBranch: core.getInput('reference_branch'),
+        useTag: core.getBooleanInput('use_tag_as_ref')
+    };
+}
+exports.getSettings = getSettings;
 
 
 /***/ }),
@@ -10248,6 +10262,74 @@ exports.NotFoundError = void 0;
 class NotFoundError extends Error {
 }
 exports.NotFoundError = NotFoundError;
+
+
+/***/ }),
+
+/***/ 4862:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getSettings = exports.getOctokitAuth = void 0;
+const github = __importStar(__nccwpck_require__(5438));
+const core = __importStar(__nccwpck_require__(2186));
+function getOctokitAuth() {
+    const githubToken = process.env['GITHUB_TOKEN'];
+    if (githubToken === undefined) {
+        throw new Error(`GITHUB_TOKEN not available in the environment. Please specify it under the env section.`);
+    }
+    return github.getOctokit(githubToken);
+}
+exports.getOctokitAuth = getOctokitAuth;
+function getSettings() {
+    return {
+        labels: {
+            patch: core.getInput('patch_label'),
+            minor: core.getInput('minor_label'),
+            major: core.getInput('major_label')
+        },
+        comment: {
+            comment: core.getBooleanInput('comment'),
+            message: core.getInput('comment_message')
+        },
+        commit: {
+            commit: core.getBooleanInput('commit'),
+            message: core.getInput('commit_message'),
+            username: core.getInput('commit_user_name'),
+            email: core.getInput('commit_user_email')
+        },
+        filePath: core.getInput('file_path'),
+        lookForKey: core.getInput('look_for_key'),
+        referenceBranch: core.getInput('reference_branch'),
+        useTag: core.getBooleanInput('use_tag_as_ref')
+    };
+}
+exports.getSettings = getSettings;
 
 
 /***/ }),

@@ -5,11 +5,14 @@ import GithubService from './services/github-service';
 import { NotFoundError } from '@utils/errors';
 import { SemanticVersion } from '@models/semantic-version';
 import { VersionType } from '@models/version-type';
-
-const github_service = new GithubService();
+import { getSettings } from '@utils/helper';
+import { PullRequestEvent } from '@octokit/webhooks-definitions/schema';
 
 const OLD_TAG = '{old}';
 const NEW_TAG = '{new}';
+
+const github_service = new GithubService();
+const settings = getSettings();
 
 async function run(): Promise<void> {
   if (github.context.eventName !== 'pull_request') {
@@ -18,30 +21,28 @@ async function run(): Promise<void> {
     );
     return;
   }
-  const look_for: string = core.getInput('look_for_key');
-  const file_path: string = core.getInput('file_path');
+  const payload = (github.context.payload as PullRequestEvent).pull_request;
+  const labels = Object.values(settings.labels);
 
   try {
     core.debug('Start action');
-    const comment_pr = core.getBooleanInput('comment');
-    const commit_pr = core.getBooleanInput('commit');
-    const labels = [
-      core.getInput('patch_label'),
-      core.getInput('minor_label'),
-      core.getInput('major_label')
-    ];
 
-    if (file_path === '') {
+    if (settings.filePath === '') {
       core.setFailed(`file_path need to be specified.`);
       return;
     }
 
-    const handler = FileHandlerFactory.fromFile(file_path);
-    const local_version = SemanticVersion.fromString(handler.get(look_for));
+    const handler = FileHandlerFactory.fromFile(settings.filePath);
+    const local_version = SemanticVersion.fromString(
+      handler.get(settings.lookForKey)
+    );
 
     core.debug(`Local raw version parsed to ${local_version.raw}`);
 
-    let reference_version = await getReferenceVersion(file_path, look_for);
+    let reference_version = await getReferenceVersion(
+      settings.filePath,
+      settings.lookForKey
+    );
 
     // Retrieving the reference version failed
     if (reference_version === undefined) {
@@ -54,15 +55,15 @@ async function run(): Promise<void> {
     Please use one of the following: ${labels.join(',')}`;
 
     core.debug('Start label search');
-    for (const label of github_service.labels) {
+    for (const label of payload.labels) {
       const index = labels.indexOf(label.name);
 
       if (index !== -1) {
         if (increased) {
           message = `There are multiple version labels on the PR. Please use only one.`;
           core.setFailed(message);
-          if (comment_pr) {
-            await github_service.createComment(message);
+          if (settings.comment.comment) {
+            await github_service.createComment(payload.number, message);
           }
           return;
         }
@@ -76,8 +77,8 @@ async function run(): Promise<void> {
 
     if (!increased) {
       core.setFailed(message);
-      if (comment_pr) {
-        await github_service.createComment(message);
+      if (settings.comment.comment) {
+        await github_service.createComment(payload.number, message);
       }
       return;
     }
@@ -85,25 +86,25 @@ async function run(): Promise<void> {
     if (reference_version.raw === local_version.raw) {
       core.info(`Version already updated. Skipping.`);
     } else {
-      handler.set(look_for, reference_version.raw);
-      handler.saveToFile(file_path);
+      handler.set(settings.lookForKey, reference_version.raw);
+      handler.saveToFile(settings.filePath);
 
-      if (commit_pr) {
+      if (settings.commit.commit) {
         await github_service.commitFile(
-          file_path,
-          core
-            .getInput('commit_message')
+          settings.filePath,
+          settings.commit.message
             .replace(OLD_TAG, local_version.raw)
             .replace(NEW_TAG, reference_version.raw),
           {
-            name: core.getInput('commit_user_name'),
-            email: core.getInput('commit_user_email')
-          }
+            name: settings.commit.username,
+            email: settings.commit.email
+          },
+          payload.head.ref
         );
-        if (comment_pr) {
+        if (settings.comment.comment) {
           await github_service.createComment(
-            core
-              .getInput('comment_message')
+            payload.number,
+            settings.comment.message
               .replace(OLD_TAG, local_version.raw)
               .replace(NEW_TAG, reference_version.raw)
           );
@@ -115,7 +116,9 @@ async function run(): Promise<void> {
     core.setOutput('has_changed', increased);
   } catch (error) {
     if (error instanceof NotFoundError)
-      core.setFailed(`Tag ${look_for} not found in ${file_path}`);
+      core.setFailed(
+        `Tag ${settings.lookForKey} not found in ${settings.filePath}`
+      );
     else if (error instanceof Error) core.setFailed(error);
   }
 }
@@ -124,10 +127,10 @@ async function getReferenceVersion(
   file_path: string,
   look_for_key: string
 ): Promise<SemanticVersion | undefined> {
-  const use_tag_as_ref: boolean = core.getBooleanInput('use_tag_as_ref');
+  const use_tag_as_ref: boolean = settings.useTag;
 
   if (!use_tag_as_ref) {
-    const branch_name: string = core.getInput('reference_branch');
+    const branch_name: string = settings.referenceBranch;
     return getRefVersionFromBranch(branch_name, file_path, look_for_key);
   } else {
     core.debug(`Retrieving reference version from tags`);

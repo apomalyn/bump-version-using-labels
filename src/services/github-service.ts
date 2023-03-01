@@ -1,31 +1,21 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as helper from '../utils/helper';
-import { Label, PullRequestEvent } from '@octokit/webhooks-definitions/schema';
 import { existsSync, readFileSync } from 'fs';
-import IGithubGetContentPayload from '../models/igithub-get-content-payload';
-import ITagPayload from '../models/igithub-tag-payload';
+import GithubGetContentPayload from '@models/github-get-content-payload';
+import ITagPayload from '@models/github-tag-payload';
 
 export default class GithubService {
-  private readonly _eventPayload: PullRequestEvent;
-  private _octokit = helper.getOctokitAuth();
-
-  constructor() {
-    this._eventPayload = github.context.payload as PullRequestEvent;
-  }
-
-  get labels(): Label[] {
-    return this._eventPayload.pull_request.labels;
-  }
+  private octokit = helper.getOctokitAuth();
 
   /**
    * Create a comment on the pull request.
    */
-  async createComment(message: string): Promise<void> {
-    await this._octokit.rest.issues.createComment({
+  async createComment(issueNumber: number, message: string): Promise<void> {
+    await this.octokit.rest.issues.createComment({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
-      issue_number: this._eventPayload.pull_request.number,
+      issue_number: issueNumber,
       body: message
     });
   }
@@ -38,8 +28,8 @@ export default class GithubService {
   async getFileContentForBranch(
     file_path: string,
     branch_name: string
-  ): Promise<IGithubGetContentPayload> {
-    const branch_exist = await this._octokit.rest.repos.getBranch({
+  ): Promise<GithubGetContentPayload> {
+    const branch_exist = await this.octokit.rest.repos.getBranch({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       branch: branch_name
@@ -49,7 +39,7 @@ export default class GithubService {
     }
     core.debug(`Reference version will be searched in ${branch_name} branch`);
 
-    const reference_file_response = await this._octokit.rest.repos.getContent({
+    const reference_file_response = await this.octokit.rest.repos.getContent({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       path: file_path,
@@ -62,11 +52,11 @@ export default class GithubService {
       );
     }
 
-    return reference_file_response.data as IGithubGetContentPayload;
+    return reference_file_response.data as GithubGetContentPayload;
   }
 
   async getRepoTags(): Promise<ITagPayload[]> {
-    const tags_list_response = await this._octokit.rest.repos.listTags({
+    const tags_list_response = await this.octokit.rest.repos.listTags({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo
     });
@@ -82,8 +72,8 @@ export default class GithubService {
     file_path: string,
     commit_message: string,
     committer: { name: string; email: string },
-    author?: { name: string; email: string },
-    branch_name?: string | undefined
+    branch_name: string,
+    author?: { name: string; email: string }
   ): Promise<void> {
     if (!existsSync(file_path)) {
       throw new Error(`${file_path} doesn't exists.`);
@@ -91,15 +81,21 @@ export default class GithubService {
 
     const file_content = readFileSync(file_path, 'utf8');
     core.info('Start commit process');
-    const blob = await this._octokit.rest.git.createBlob({
+    const blob = await this.octokit.rest.git.createBlob({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       content: file_content,
       encoding: 'utf8'
     });
-    const current_commit_sha = this._eventPayload.pull_request.head.sha;
-    core.debug(`Last commit sha: ${current_commit_sha}`);
-    const tree = await this._octokit.rest.git.createTree({
+
+    const current_commit = (
+      (await this.octokit.request(
+        `GET /repos/${github.context.repo.owner}/${github.context.repo.repo}/commits/${branch_name}`
+      )) as { data: { sha: string } }
+    ).data;
+
+    core.debug(`Last commit: ${current_commit.sha}`);
+    const tree = await this.octokit.rest.git.createTree({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       tree: [
@@ -110,7 +106,7 @@ export default class GithubService {
           sha: blob.data.sha
         }
       ],
-      base_tree: await this.getTreeShaForCommit(current_commit_sha)
+      base_tree: await this.getTreeShaForCommit(current_commit.sha)
     });
 
     if (author === undefined) {
@@ -120,28 +116,28 @@ export default class GithubService {
       };
     }
 
-    const commit = await this._octokit.rest.git.createCommit({
+    const commit = await this.octokit.rest.git.createCommit({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       message: commit_message,
       tree: tree.data.sha,
-      parents: [current_commit_sha],
+      parents: [current_commit.sha],
       committer,
       author
     });
     core.debug(`New commit created, sha: ${commit.data.sha}`);
 
-    await this._octokit.rest.git.updateRef({
+    await this.octokit.rest.git.updateRef({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
-      ref: `heads/${branch_name ?? this._eventPayload.pull_request.head.ref}`,
+      ref: `heads/${branch_name}`,
       sha: commit.data.sha
     });
     core.info(`Commit pushed! (sha: ${commit.data.sha})`);
   }
 
   async getTreeShaForCommit(sha: string): Promise<string> {
-    const { data: commit_data } = await this._octokit.rest.git.getCommit({
+    const { data: commit_data } = await this.octokit.rest.git.getCommit({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       commit_sha: sha
