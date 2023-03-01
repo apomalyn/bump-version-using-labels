@@ -12,6 +12,7 @@ const OLD_TAG = '{old}';
 const NEW_TAG = '{new}';
 
 const github_service = new GithubService();
+const settings = getSettings();
 
 async function run(): Promise<void> {
   if (github.context.eventName !== 'pull_request') {
@@ -21,7 +22,6 @@ async function run(): Promise<void> {
     return;
   }
   const payload = (github.context.payload as PullRequestEvent).pull_request;
-  const settings = getSettings();
   const labels = Object.values(settings.labels);
 
   try {
@@ -62,7 +62,7 @@ async function run(): Promise<void> {
         if (increased) {
           message = `There are multiple version labels on the PR. Please use only one.`;
           core.setFailed(message);
-          if (settings.comment) {
+          if (settings.comment.comment) {
             await github_service.createComment(payload.number, message);
           }
           return;
@@ -77,7 +77,7 @@ async function run(): Promise<void> {
 
     if (!increased) {
       core.setFailed(message);
-      if (settings.comment) {
+      if (settings.comment.comment) {
         await github_service.createComment(payload.number, message);
       }
       return;
@@ -89,19 +89,19 @@ async function run(): Promise<void> {
       handler.set(settings.lookForKey, reference_version.raw);
       handler.saveToFile(settings.filePath);
 
-      if (settings.comment) {
+      if (settings.commit.commit) {
         await github_service.commitFile(
           settings.filePath,
-          settings.comment.message
+          settings.commit.message
             .replace(OLD_TAG, local_version.raw)
             .replace(NEW_TAG, reference_version.raw),
           {
-            name: core.getInput('commit_user_name'),
-            email: core.getInput('commit_user_email')
+            name: settings.commit.username,
+            email: settings.commit.email
           },
           payload.head.ref
         );
-        if (settings.comment) {
+        if (settings.comment.comment) {
           await github_service.createComment(
             payload.number,
             settings.comment.message
@@ -127,10 +127,10 @@ async function getReferenceVersion(
   file_path: string,
   look_for_key: string
 ): Promise<SemanticVersion | undefined> {
-  const use_tag_as_ref: boolean = core.getBooleanInput('use_tag_as_ref');
+  const use_tag_as_ref: boolean = settings.useTag;
 
   if (!use_tag_as_ref) {
-    const branch_name: string = core.getInput('reference_branch');
+    const branch_name: string = settings.referenceBranch;
     return getRefVersionFromBranch(branch_name, file_path, look_for_key);
   } else {
     core.debug(`Retrieving reference version from tags`);
