@@ -5,6 +5,7 @@ import GithubService from './services/github-service';
 import { NotFoundError } from '@utils/errors';
 import { SemanticVersion } from '@models/semantic-version';
 import { VersionType } from '@models/version-type';
+import { getSettings } from '@utils/helper';
 
 const github_service = new GithubService();
 
@@ -18,30 +19,28 @@ async function run(): Promise<void> {
     );
     return;
   }
-  const look_for: string = core.getInput('look_for_key');
-  const file_path: string = core.getInput('file_path');
+  const settings = getSettings();
+  const labels = Object.values(settings.labels);
 
   try {
     core.debug('Start action');
-    const comment_pr = core.getBooleanInput('comment');
-    const commit_pr = core.getBooleanInput('commit');
-    const labels = [
-      core.getInput('patch_label'),
-      core.getInput('minor_label'),
-      core.getInput('major_label')
-    ];
 
-    if (file_path === '') {
+    if (settings.filePath === '') {
       core.setFailed(`file_path need to be specified.`);
       return;
     }
 
-    const handler = FileHandlerFactory.fromFile(file_path);
-    const local_version = SemanticVersion.fromString(handler.get(look_for));
+    const handler = FileHandlerFactory.fromFile(settings.filePath);
+    const local_version = SemanticVersion.fromString(
+      handler.get(settings.lookForKey)
+    );
 
     core.debug(`Local raw version parsed to ${local_version.raw}`);
 
-    let reference_version = await getReferenceVersion(file_path, look_for);
+    let reference_version = await getReferenceVersion(
+      settings.filePath,
+      settings.lookForKey
+    );
 
     // Retrieving the reference version failed
     if (reference_version === undefined) {
@@ -61,7 +60,7 @@ async function run(): Promise<void> {
         if (increased) {
           message = `There are multiple version labels on the PR. Please use only one.`;
           core.setFailed(message);
-          if (comment_pr) {
+          if (settings.comment) {
             await github_service.createComment(message);
           }
           return;
@@ -76,7 +75,7 @@ async function run(): Promise<void> {
 
     if (!increased) {
       core.setFailed(message);
-      if (comment_pr) {
+      if (settings.comment) {
         await github_service.createComment(message);
       }
       return;
@@ -85,14 +84,13 @@ async function run(): Promise<void> {
     if (reference_version.raw === local_version.raw) {
       core.info(`Version already updated. Skipping.`);
     } else {
-      handler.set(look_for, reference_version.raw);
-      handler.saveToFile(file_path);
+      handler.set(settings.lookForKey, reference_version.raw);
+      handler.saveToFile(settings.filePath);
 
-      if (commit_pr) {
+      if (settings.comment) {
         await github_service.commitFile(
-          file_path,
-          core
-            .getInput('commit_message')
+          settings.filePath,
+          settings.comment.message
             .replace(OLD_TAG, local_version.raw)
             .replace(NEW_TAG, reference_version.raw),
           {
@@ -100,10 +98,9 @@ async function run(): Promise<void> {
             email: core.getInput('commit_user_email')
           }
         );
-        if (comment_pr) {
+        if (settings.comment) {
           await github_service.createComment(
-            core
-              .getInput('comment_message')
+            settings.comment.message
               .replace(OLD_TAG, local_version.raw)
               .replace(NEW_TAG, reference_version.raw)
           );
@@ -115,7 +112,9 @@ async function run(): Promise<void> {
     core.setOutput('has_changed', increased);
   } catch (error) {
     if (error instanceof NotFoundError)
-      core.setFailed(`Tag ${look_for} not found in ${file_path}`);
+      core.setFailed(
+        `Tag ${settings.lookForKey} not found in ${settings.filePath}`
+      );
     else if (error instanceof Error) core.setFailed(error);
   }
 }
