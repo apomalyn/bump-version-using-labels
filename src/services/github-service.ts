@@ -88,14 +88,6 @@ export default class GithubService {
       encoding: 'utf8'
     });
 
-    core.debug(
-      JSON.stringify(
-        await this.octokit.request(
-          `GET /repos/${github.context.repo.owner}/${github.context.repo.repo}/commits/${branch_name}`
-        )
-      )
-    );
-
     const current_commit = (
       (await this.octokit.request(
         `GET /repos/${github.context.repo.owner}/${github.context.repo.repo}/commits/${branch_name}`
