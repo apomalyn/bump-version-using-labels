@@ -6,11 +6,12 @@ import { NotFoundError } from '@utils/errors';
 import { SemanticVersion } from '@models/semantic-version';
 import { VersionType } from '@models/version-type';
 import { getSettings } from '@utils/helper';
-
-const github_service = new GithubService();
+import { PullRequestEvent } from '@octokit/webhooks-definitions/schema';
 
 const OLD_TAG = '{old}';
 const NEW_TAG = '{new}';
+
+const github_service = new GithubService();
 
 async function run(): Promise<void> {
   if (github.context.eventName !== 'pull_request') {
@@ -19,6 +20,7 @@ async function run(): Promise<void> {
     );
     return;
   }
+  const payload = (github.context.payload as PullRequestEvent).pull_request;
   const settings = getSettings();
   const labels = Object.values(settings.labels);
 
@@ -53,7 +55,7 @@ async function run(): Promise<void> {
     Please use one of the following: ${labels.join(',')}`;
 
     core.debug('Start label search');
-    for (const label of github_service.labels) {
+    for (const label of payload.labels) {
       const index = labels.indexOf(label.name);
 
       if (index !== -1) {
@@ -61,7 +63,7 @@ async function run(): Promise<void> {
           message = `There are multiple version labels on the PR. Please use only one.`;
           core.setFailed(message);
           if (settings.comment) {
-            await github_service.createComment(message);
+            await github_service.createComment(payload.number, message);
           }
           return;
         }
@@ -76,7 +78,7 @@ async function run(): Promise<void> {
     if (!increased) {
       core.setFailed(message);
       if (settings.comment) {
-        await github_service.createComment(message);
+        await github_service.createComment(payload.number, message);
       }
       return;
     }
@@ -96,10 +98,12 @@ async function run(): Promise<void> {
           {
             name: core.getInput('commit_user_name'),
             email: core.getInput('commit_user_email')
-          }
+          },
+          payload.head.ref
         );
         if (settings.comment) {
           await github_service.createComment(
+            payload.number,
             settings.comment.message
               .replace(OLD_TAG, local_version.raw)
               .replace(NEW_TAG, reference_version.raw)
