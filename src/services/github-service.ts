@@ -88,12 +88,18 @@ export default class GithubService {
       encoding: 'utf8'
     });
 
+    core.debug(
+      JSON.stringify(
+        await this.octokit.request(
+          `GET /repos/${github.context.repo.owner}/${github.context.repo.repo}/commits/${branch_name}`
+        )
+      )
+    );
+
     const current_commit = (
-      await this.octokit.rest.git.getCommit({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        commit_sha: branch_name
-      })
+      (await this.octokit.request(
+        `GET /repos/${github.context.repo.owner}/${github.context.repo.repo}/commits/${branch_name}`
+      )) as { data: { sha: string } }
     ).data;
 
     core.debug(`Last commit: ${current_commit.sha}`);
