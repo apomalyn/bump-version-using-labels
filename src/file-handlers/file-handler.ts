@@ -2,13 +2,10 @@ import { FileType } from '@models/file-type';
 import { writeFileSync } from 'fs';
 
 export abstract class FileHandler {
-  protected content: string;
-  protected fileType: FileType;
-
-  protected constructor(content: string, fileType: FileType) {
-    this.content = content;
-    this.fileType = fileType;
-  }
+  protected constructor(
+    protected content: string,
+    protected fileType: FileType
+  ) {}
 
   saveToFile(filePath: string): void {
     writeFileSync(filePath, this.content);
