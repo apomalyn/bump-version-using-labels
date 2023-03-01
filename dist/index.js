@@ -304,11 +304,8 @@ class GithubService {
                 content: file_content,
                 encoding: 'utf8'
             });
-            const current_commit = (yield this.octokit.rest.git.getCommit({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                commit_sha: branch_name
-            })).data;
+            core.debug(JSON.stringify(yield this.octokit.request(`GET /repos/${github.context.repo.owner}/${github.context.repo.repo}/commits/${branch_name}`)));
+            const current_commit = (yield this.octokit.request(`GET /repos/${github.context.repo.owner}/${github.context.repo.repo}/commits/${branch_name}`)).data;
             core.debug(`Last commit: ${current_commit.sha}`);
             const tree = yield this.octokit.rest.git.createTree({
                 owner: github.context.repo.owner,
