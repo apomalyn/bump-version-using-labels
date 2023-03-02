@@ -47,7 +47,9 @@
   "_moduleAliases": {
     "@services": "lib/services",
     "@fileHandlers": "lib/file-handlers",
+    "@eventHandlers": "lib/event-handlers",
     "@models": "lib/models",
-    "@utils": "lib/utils"
+    "@utils": "lib/utils",
+    "@constants": "lib/constants"
   }
 }
