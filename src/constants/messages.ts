@@ -22,7 +22,9 @@ export const Messages = {
   referenceVersionNotFound:
     'Reference version not found, will use the local one.',
   keyNotFound: (key: string, filePath: string) =>
-    `Tag ${key} not found in ${filePath}`
+    `Tag ${key} not found in ${filePath}`,
+  savingNewVersion: (file: string, version: string) =>
+    `Saving ${file} with version: ${version}.`
 };
 
 export const OLD_TAG = '{old}';

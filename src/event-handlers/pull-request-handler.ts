@@ -95,6 +95,12 @@ export default class PullRequestHandler extends EventHandler {
       };
     }
 
+    core.debug(
+      Messages.savingNewVersion(this.settings.filePath, referenceVersion.raw)
+    );
+    this.fileHandler.set(this.settings.lookForKey, referenceVersion.raw);
+    this.fileHandler.saveToFile(this.settings.filePath);
+
     await this.commitVersion(
       this.pullRequest.head.ref,
       localVersion,
