@@ -4,6 +4,7 @@ import { PullRequestEvent } from '@octokit/webhooks-definitions/schema';
 import { EventHandler } from './event-handler';
 import { WebhookPayload } from '@actions/github/lib/interfaces';
 import { getSettings } from '@utils/helper';
+import { Messages } from '@constants/messages';
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class EventHandlerFactory {
@@ -14,9 +15,7 @@ export class EventHandlerFactory {
         return new PullRequestHandler(payload as PullRequestEvent, settings);
       case EventType.Push:
       default:
-        throw new TypeError(
-          `${eventName} isn't a supported event for this action.`
-        );
+        throw new TypeError(Messages.eventNotSupported(eventName));
     }
   }
 }

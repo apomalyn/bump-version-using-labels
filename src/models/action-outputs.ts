@@ -1,6 +1,6 @@
 export interface IActionOutputs {
-  version: string;
-  hasChanged: boolean;
+  [ActionOutputs.version]: string;
+  [ActionOutputs.hasChanged]: boolean;
 }
 
 export enum ActionOutputs {

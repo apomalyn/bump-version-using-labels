@@ -3,7 +3,7 @@ import { EventType } from '@models/event-type';
 import { ISettings } from '@models/settings';
 import { SemanticVersion } from '@models/semantic-version';
 import GithubService from '@services/github-service';
-import { WorkflowFails } from '@utils/errors';
+import { NotFoundError, WorkflowFails } from '@utils/errors';
 import FileHandlerFactory from '@fileHandlers/file-handler-factory';
 import * as core from '@actions/core';
 import { NEW_TAG, OLD_TAG } from '@constants/messages';
@@ -18,7 +18,19 @@ export abstract class EventHandler {
     protected settings: ISettings
   ) {}
 
-  abstract dispatch(): Promise<IActionOutputs>;
+  async handle(): Promise<IActionOutputs> {
+    try {
+      return this.process();
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new WorkflowFails(error.message);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  protected abstract process(): Promise<IActionOutputs>;
 
   /**
    * Commit the new version. This will only commit the file modified.
