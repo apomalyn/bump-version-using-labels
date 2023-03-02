@@ -9518,7 +9518,8 @@ exports.Messages = {
     localVersionParsed: (rawVersion) => `Local version parsed to ${rawVersion}.`,
     referenceVersionParsed: (rawVersion) => `Reference version parsed to ${rawVersion}.`,
     referenceVersionNotFound: 'Reference version not found, will use the local one.',
-    keyNotFound: (key, filePath) => `Tag ${key} not found in ${filePath}`
+    keyNotFound: (key, filePath) => `Tag ${key} not found in ${filePath}`,
+    savingNewVersion: (file, version) => `Saving ${file} with version: ${version}.`
 };
 exports.OLD_TAG = '{old}';
 exports.NEW_TAG = '{new}';
@@ -9811,6 +9812,9 @@ class PullRequestHandler extends event_handler_1.EventHandler {
                     [action_outputs_1.ActionOutputs.hasChanged]: false
                 };
             }
+            core.debug(messages_1.Messages.savingNewVersion(this.settings.filePath, referenceVersion.raw));
+            this.fileHandler.set(this.settings.lookForKey, referenceVersion.raw);
+            this.fileHandler.saveToFile(this.settings.filePath);
             yield this.commitVersion(this.pullRequest.head.ref, localVersion, referenceVersion);
             yield this.commentPullRequest(this.settings.comment.message
                 .replace(messages_1.OLD_TAG, localVersion.raw)
