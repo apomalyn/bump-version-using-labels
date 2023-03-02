@@ -22,14 +22,16 @@ export function getSettings(): ISettings {
       major: core.getInput('major_label')
     },
     comment: {
-      comment: core.getBooleanInput('comment'),
+      need: core.getBooleanInput('comment'),
       message: core.getInput('comment_message')
     },
     commit: {
-      commit: core.getBooleanInput('commit'),
+      need: core.getBooleanInput('commit'),
       message: core.getInput('commit_message'),
-      username: core.getInput('commit_user_name'),
-      email: core.getInput('commit_user_email')
+      committer: {
+        name: core.getInput('commit_user_name'),
+        email: core.getInput('commit_user_email')
+      }
     },
     filePath: core.getInput('file_path'),
     lookForKey: core.getInput('look_for_key'),

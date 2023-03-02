@@ -18,14 +18,16 @@ interface ILabels {
 
 interface ICommentSettings {
   // True if the action should comment
-  comment: boolean;
+  need: boolean;
   message: string;
 }
 
 interface ICommitSettings {
   // True if the action should commit
-  commit: boolean;
+  need: boolean;
   message: string;
-  username: string;
-  email: string;
+  committer: {
+    name: string;
+    email: string;
+  };
 }

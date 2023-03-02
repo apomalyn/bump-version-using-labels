@@ -12,6 +12,9 @@
       "@fileHandlers/*": [
         "src/file-handlers/*"
       ],
+      "@eventHandlers/*": [
+        "src/event-handlers/*"
+      ],
       "@services/*": [
         "src/services/*"
       ],
@@ -20,6 +23,9 @@
       ],
       "@utils/*": [
         "src/utils/*"
+      ],
+      "@constants/*": [
+        "src/constants/*"
       ]
     }
   },
