@@ -62,7 +62,7 @@ export default class GithubService {
     });
 
     if (tags_list_response.status !== 200) {
-      throw new Error(`No tags found on the repository`);
+      throw new Error(`${JSON.stringify(tags_list_response.data)}`);
     }
 
     return tags_list_response.data as ITagPayload[];
