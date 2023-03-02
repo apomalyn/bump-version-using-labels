@@ -8,7 +8,7 @@ on: # rebuild any PRs and main branch changes
       - opened
       - reopened
 concurrency:
-  group: ${{ github.ref }}
+  group: test-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   test:

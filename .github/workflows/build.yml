@@ -6,7 +6,7 @@ on: # rebuild any PRs and main branch changes
       - main
       - 'releases/*'
 concurrency:
-  group: ${{ github.ref }}
+  group: build-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build: # make sure build/ci work properly
