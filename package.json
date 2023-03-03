@@ -1,6 +1,6 @@
 {
   "name": "typescript-action",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "private": true,
   "description": "TypeScript template action",
   "main": "lib/main.js",
@@ -47,7 +47,9 @@
   "_moduleAliases": {
     "@services": "lib/services",
     "@fileHandlers": "lib/file-handlers",
+    "@eventHandlers": "lib/event-handlers",
     "@models": "lib/models",
-    "@utils": "lib/utils"
+    "@utils": "lib/utils",
+    "@constants": "lib/constants"
   }
 }

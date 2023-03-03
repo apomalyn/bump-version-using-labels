@@ -7,6 +7,9 @@ on: # rebuild any PRs and main branch changes
       - synchronize
       - opened
       - reopened
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   test:
     runs-on: ubuntu-latest

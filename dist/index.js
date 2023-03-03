@@ -38,392 +38,31 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-const file_handler_factory_1 = __importDefault(__nccwpck_require__(6617));
-const github_service_1 = __importDefault(__nccwpck_require__(2404));
 const errors_1 = __nccwpck_require__(2579);
-const semantic_version_1 = __nccwpck_require__(7829);
-const version_type_1 = __nccwpck_require__(407);
-const helper_1 = __nccwpck_require__(4862);
-const OLD_TAG = '{old}';
-const NEW_TAG = '{new}';
-const github_service = new github_service_1.default();
-const settings = (0, helper_1.getSettings)();
+const event_handler_factory_1 = __nccwpck_require__(3730);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
-        if (github.context.eventName !== 'pull_request') {
-            core.setFailed("Event isn't a pull request. This action can only work on pull request.");
-            return;
-        }
-        const payload = github.context.payload.pull_request;
-        const labels = Object.values(settings.labels);
         try {
-            core.debug('Start action');
-            if (settings.filePath === '') {
-                core.setFailed(`file_path need to be specified.`);
-                return;
+            const eventHandler = event_handler_factory_1.EventHandlerFactory.fromEvent(github.context.eventName, github.context.payload);
+            const outputs = yield eventHandler.handle();
+            for (const [key, value] of Object.entries(outputs)) {
+                core.setOutput(key, value);
             }
-            const handler = file_handler_factory_1.default.fromFile(settings.filePath);
-            const local_version = semantic_version_1.SemanticVersion.fromString(handler.get(settings.lookForKey));
-            core.debug(`Local raw version parsed to ${local_version.raw}`);
-            let reference_version = yield getReferenceVersion(settings.filePath, settings.lookForKey);
-            // Retrieving the reference version failed
-            if (reference_version === undefined) {
-                core.info(`Reference version not found, will use the local one`);
-                reference_version = local_version;
-            }
-            let increased = false;
-            let message = `There is no version labels on the PR. 
-    Please use one of the following: ${labels.join(',')}`;
-            core.debug('Start label search');
-            for (const label of payload.labels) {
-                const index = labels.indexOf(label.name);
-                if (index !== -1) {
-                    if (increased) {
-                        message = `There are multiple version labels on the PR. Please use only one.`;
-                        core.setFailed(message);
-                        if (settings.comment.comment) {
-                            yield github_service.createComment(payload.number, message);
-                        }
-                        return;
-                    }
-                    core.debug(`Version label found, increasing ${version_type_1.VersionType[index]}`);
-                    reference_version.increase(version_type_1.VersionType[version_type_1.VersionType[index]]);
-                    increased = true;
-                }
-            }
-            if (!increased) {
-                core.setFailed(message);
-                if (settings.comment.comment) {
-                    yield github_service.createComment(payload.number, message);
-                }
-                return;
-            }
-            if (reference_version.raw === local_version.raw) {
-                core.info(`Version already updated. Skipping.`);
-            }
-            else {
-                handler.set(settings.lookForKey, reference_version.raw);
-                handler.saveToFile(settings.filePath);
-                if (settings.commit.commit) {
-                    yield github_service.commitFile(settings.filePath, settings.commit.message
-                        .replace(OLD_TAG, local_version.raw)
-                        .replace(NEW_TAG, reference_version.raw), {
-                        name: settings.commit.username,
-                        email: settings.commit.email
-                    }, payload.head.ref);
-                    if (settings.comment.comment) {
-                        yield github_service.createComment(payload.number, settings.comment.message
-                            .replace(OLD_TAG, local_version.raw)
-                            .replace(NEW_TAG, reference_version.raw));
-                    }
-                }
-            }
-            core.setOutput('version', reference_version.raw);
-            core.setOutput('has_changed', increased);
-        }
-        catch (error) {
-            if (error instanceof errors_1.NotFoundError)
-                core.setFailed(`Tag ${settings.lookForKey} not found in ${settings.filePath}`);
-            else if (error instanceof Error)
-                core.setFailed(error);
-        }
-    });
-}
-function getReferenceVersion(file_path, look_for_key) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const use_tag_as_ref = settings.useTag;
-        if (!use_tag_as_ref) {
-            const branch_name = settings.referenceBranch;
-            return getRefVersionFromBranch(branch_name, file_path, look_for_key);
-        }
-        else {
-            core.debug(`Retrieving reference version from tags`);
-            return getRefVersionFromTag();
-        }
-    });
-}
-/**
- * Retrieve the version associated with [look_for_key] in [file_path] on the
- * specified branch.
- */
-function getRefVersionFromBranch(branch_name, file_path, look_for_key) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const reference_file = yield github_service.getFileContentForBranch(file_path, branch_name);
-            const handler = file_handler_factory_1.default.fromContent(reference_file.name, Buffer.from(reference_file.content, 'base64').toString('binary'));
-            return semantic_version_1.SemanticVersion.fromString(handler.get(look_for_key));
         }
         catch (e) {
-            if (e instanceof ReferenceError) {
+            if (e instanceof errors_1.WorkflowFails) {
                 core.setFailed(e.message);
             }
-            return;
-        }
-    });
-}
-/**
- * Retrieve the version from the latest tag published
- */
-function getRefVersionFromTag() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const tags_list = yield github_service.getRepoTags();
-            if (tags_list.length === 0) {
-                return;
-            }
-            return semantic_version_1.SemanticVersion.fromString(tags_list[0].name);
-        }
-        catch (e) {
-            if (e instanceof Error) {
-                core.setFailed(`No tags found on the repository`);
-                throw e;
+            else if (e instanceof Error) {
+                core.error(e.message);
             }
         }
     });
 }
 void run();
-
-
-/***/ }),
-
-/***/ 2404:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core = __importStar(__nccwpck_require__(2186));
-const github = __importStar(__nccwpck_require__(5438));
-const helper = __importStar(__nccwpck_require__(698));
-const fs_1 = __nccwpck_require__(7147);
-class GithubService {
-    constructor() {
-        this.octokit = helper.getOctokitAuth();
-    }
-    /**
-     * Create a comment on the pull request.
-     */
-    createComment(issueNumber, message) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.octokit.rest.issues.createComment({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                issue_number: issueNumber,
-                body: message
-            });
-        });
-    }
-    /**
-     * Retrieve content from a repository branch.
-     * Can throw an ReferenceError if the branch or the file in the branch doesn't
-     * exist.
-     */
-    getFileContentForBranch(file_path, branch_name) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const branch_exist = yield this.octokit.rest.repos.getBranch({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                branch: branch_name
-            });
-            if (branch_exist.status !== 200) {
-                throw new ReferenceError(`Reference branch ${branch_name} not found`);
-            }
-            core.debug(`Reference version will be searched in ${branch_name} branch`);
-            const reference_file_response = yield this.octokit.rest.repos.getContent({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                path: file_path,
-                ref: branch_name
-            });
-            if (reference_file_response.status !== 200) {
-                throw new ReferenceError(`File ${file_path} in branch ${branch_name} not found`);
-            }
-            return reference_file_response.data;
-        });
-    }
-    getRepoTags() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const tags_list_response = yield this.octokit.rest.repos.listTags({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo
-            });
-            if (tags_list_response.status !== 200) {
-                throw new Error(`No tags found on the repository`);
-            }
-            return tags_list_response.data;
-        });
-    }
-    commitFile(file_path, commit_message, committer, branch_name, author) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!(0, fs_1.existsSync)(file_path)) {
-                throw new Error(`${file_path} doesn't exists.`);
-            }
-            const file_content = (0, fs_1.readFileSync)(file_path, 'utf8');
-            core.info('Start commit process');
-            const blob = yield this.octokit.rest.git.createBlob({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                content: file_content,
-                encoding: 'utf8'
-            });
-            const current_commit = (yield this.octokit.request(`GET /repos/${github.context.repo.owner}/${github.context.repo.repo}/commits/${branch_name}`)).data;
-            core.debug(`Last commit: ${current_commit.sha}`);
-            const tree = yield this.octokit.rest.git.createTree({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                tree: [
-                    {
-                        path: file_path,
-                        mode: `100644`,
-                        type: `blob`,
-                        sha: blob.data.sha
-                    }
-                ],
-                base_tree: yield this.getTreeShaForCommit(current_commit.sha)
-            });
-            if (author === undefined) {
-                author = {
-                    name: github.context.actor,
-                    email: `${github.context.actor}@users.noreply.github.com`
-                };
-            }
-            const commit = yield this.octokit.rest.git.createCommit({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                message: commit_message,
-                tree: tree.data.sha,
-                parents: [current_commit.sha],
-                committer,
-                author
-            });
-            core.debug(`New commit created, sha: ${commit.data.sha}`);
-            yield this.octokit.rest.git.updateRef({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                ref: `heads/${branch_name}`,
-                sha: commit.data.sha
-            });
-            core.info(`Commit pushed! (sha: ${commit.data.sha})`);
-        });
-    }
-    getTreeShaForCommit(sha) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const { data: commit_data } = yield this.octokit.rest.git.getCommit({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                commit_sha: sha
-            });
-            return commit_data.tree.sha;
-        });
-    }
-}
-exports["default"] = GithubService;
-
-
-/***/ }),
-
-/***/ 698:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getSettings = exports.getOctokitAuth = void 0;
-const github = __importStar(__nccwpck_require__(5438));
-const core = __importStar(__nccwpck_require__(2186));
-function getOctokitAuth() {
-    const githubToken = process.env['GITHUB_TOKEN'];
-    if (githubToken === undefined) {
-        throw new Error(`GITHUB_TOKEN not available in the environment. Please specify it under the env section.`);
-    }
-    return github.getOctokit(githubToken);
-}
-exports.getOctokitAuth = getOctokitAuth;
-function getSettings() {
-    return {
-        labels: {
-            patch: core.getInput('patch_label'),
-            minor: core.getInput('minor_label'),
-            major: core.getInput('major_label')
-        },
-        comment: {
-            comment: core.getBooleanInput('comment'),
-            message: core.getInput('comment_message')
-        },
-        commit: {
-            commit: core.getBooleanInput('commit'),
-            message: core.getInput('commit_message'),
-            username: core.getInput('commit_user_name'),
-            email: core.getInput('commit_user_email')
-        },
-        filePath: core.getInput('file_path'),
-        lookForKey: core.getInput('look_for_key'),
-        referenceBranch: core.getInput('reference_branch'),
-        useTag: core.getBooleanInput('use_tag_as_ref')
-    };
-}
-exports.getSettings = getSettings;
 
 
 /***/ }),
@@ -9860,6 +9499,346 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 4144:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.NEW_TAG = exports.OLD_TAG = exports.Messages = void 0;
+exports.Messages = {
+    eventNotSupported: (eventName) => `Trigger ${eventName} isn't supported. Please refer to the documentation to adjust your workflow.`,
+    eventDetected: (event) => `Event detected: ${event}.`,
+    startProcessing: 'Start processing event.',
+    noLabelsFound: (labels) => `There is no version labels on the PR.\nPlease use one of the following: ${labels.join(', ')}`,
+    startLabelSearch: 'Searching for a version increase label...',
+    multipleLabelsFound: 'There are multiple version labels on the PR. Please use only one.',
+    labelFound: (increasing) => `Version label found, increasing ${increasing}.`,
+    versionAlreadyUpdated: 'Version already updated. Skipping.',
+    localVersionParsed: (rawVersion) => `Local version parsed to ${rawVersion}.`,
+    referenceVersionParsed: (rawVersion) => `Reference version parsed to ${rawVersion}.`,
+    referenceVersionNotFound: 'Reference version not found, will use the local one.',
+    keyNotFound: (key, filePath) => `Tag ${key} not found in ${filePath}`,
+    savingNewVersion: (file, version) => `Saving ${file} with version: ${version}.`
+};
+exports.OLD_TAG = '{old}';
+exports.NEW_TAG = '{new}';
+
+
+/***/ }),
+
+/***/ 3730:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.EventHandlerFactory = void 0;
+const event_type_1 = __nccwpck_require__(5560);
+const pull_request_handler_1 = __importDefault(__nccwpck_require__(7803));
+const helper_1 = __nccwpck_require__(4862);
+const messages_1 = __nccwpck_require__(4144);
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+class EventHandlerFactory {
+    static fromEvent(eventName, payload) {
+        const settings = (0, helper_1.getSettings)();
+        switch (eventName) {
+            case event_type_1.EventType.PullRequest:
+                return new pull_request_handler_1.default(payload, settings);
+            case event_type_1.EventType.Push:
+            default:
+                throw new TypeError(messages_1.Messages.eventNotSupported(eventName));
+        }
+    }
+}
+exports.EventHandlerFactory = EventHandlerFactory;
+
+
+/***/ }),
+
+/***/ 9351:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.EventHandler = void 0;
+const semantic_version_1 = __nccwpck_require__(7829);
+const github_service_1 = __importDefault(__nccwpck_require__(4991));
+const errors_1 = __nccwpck_require__(2579);
+const file_handler_factory_1 = __importDefault(__nccwpck_require__(6617));
+const core = __importStar(__nccwpck_require__(2186));
+const messages_1 = __nccwpck_require__(4144);
+class EventHandler {
+    constructor(eventType, payload, settings) {
+        this.eventType = eventType;
+        this.payload = payload;
+        this.settings = settings;
+        this.githubService = new github_service_1.default();
+    }
+    handle() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                return this.process();
+            }
+            catch (error) {
+                if (error instanceof errors_1.NotFoundError) {
+                    throw new errors_1.WorkflowFails(error.message);
+                }
+                else {
+                    throw error;
+                }
+            }
+        });
+    }
+    /**
+     * Commit the new version. This will only commit the file modified.
+     * @param branch branch that will receive the commit
+     * @param localVersion
+     * @param referenceVersion
+     */
+    commitVersion(branch, localVersion, referenceVersion) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.settings.commit.need) {
+                return;
+            }
+            const commitMessage = this.settings.commit.message
+                .replace(messages_1.OLD_TAG, localVersion.raw)
+                .replace(messages_1.NEW_TAG, referenceVersion.raw);
+            yield this.githubService.commitFile(this.settings.filePath, commitMessage, this.settings.commit.committer, branch);
+        });
+    }
+    /**
+     * Retrieve the reference version following the settings of the action
+     * (branch or tag)
+     */
+    getReferenceVersion() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.settings.useTag) {
+                return this.getVersionFromBranch(this.settings.referenceBranch);
+            }
+            core.debug(`Retrieving reference version from tags`);
+            return this.getVersionFromLastTag();
+        });
+    }
+    getVersionFromLastTag() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const tagsList = yield this.githubService.getRepoTags();
+                if (tagsList.length === 0) {
+                    return;
+                }
+                return semantic_version_1.SemanticVersion.fromString(tagsList[0].name);
+            }
+            catch (e) {
+                if (e instanceof Error) {
+                    throw new errors_1.WorkflowFails(`Something went wrong. Stopping action.`);
+                }
+            }
+        });
+    }
+    /**
+     * Retrieve the version associated with [look_for_key] in [file_path] on the
+     * specified branch.
+     */
+    getVersionFromBranch(branchName) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const referenceFile = yield this.githubService.getFileContentForBranch(this.settings.filePath, branchName);
+                const handler = file_handler_factory_1.default.fromContent(referenceFile.name, Buffer.from(referenceFile.content, 'base64').toString('binary'));
+                return semantic_version_1.SemanticVersion.fromString(handler.get(this.settings.lookForKey));
+            }
+            catch (e) {
+                if (e instanceof ReferenceError) {
+                    throw new errors_1.WorkflowFails(e.message);
+                }
+                return;
+            }
+        });
+    }
+}
+exports.EventHandler = EventHandler;
+
+
+/***/ }),
+
+/***/ 7803:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const event_handler_1 = __nccwpck_require__(9351);
+const event_type_1 = __nccwpck_require__(5560);
+const file_handler_factory_1 = __importDefault(__nccwpck_require__(6617));
+const semantic_version_1 = __nccwpck_require__(7829);
+const core = __importStar(__nccwpck_require__(2186));
+const messages_1 = __nccwpck_require__(4144);
+const version_type_1 = __nccwpck_require__(407);
+const errors_1 = __nccwpck_require__(2579);
+const action_outputs_1 = __nccwpck_require__(190);
+class PullRequestHandler extends event_handler_1.EventHandler {
+    constructor(payload, settings) {
+        super(event_type_1.EventType.PullRequest, payload, settings);
+        this.pullRequest = payload.pull_request;
+        this.fileHandler = file_handler_factory_1.default.fromFile(settings.filePath);
+    }
+    handle() {
+        const _super = Object.create(null, {
+            handle: { get: () => super.handle }
+        });
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                return _super.handle.call(this);
+            }
+            catch (e) {
+                if (e instanceof errors_1.WorkflowFails && e.comment) {
+                    yield this.commentPullRequest(e.message);
+                }
+                throw e;
+            }
+        });
+    }
+    process() {
+        return __awaiter(this, void 0, void 0, function* () {
+            core.debug(messages_1.Messages.eventDetected(event_type_1.EventType.PullRequest) + messages_1.Messages.startProcessing);
+            const labels = Object.values(this.settings.labels);
+            const localVersion = semantic_version_1.SemanticVersion.fromString(this.fileHandler.get(this.settings.lookForKey));
+            core.debug(messages_1.Messages.localVersionParsed(localVersion.raw));
+            let referenceVersion = yield this.getReferenceVersion();
+            // Retrieving the reference version failed
+            if (referenceVersion === undefined) {
+                core.info(messages_1.Messages.referenceVersionNotFound);
+                referenceVersion = localVersion;
+            }
+            else {
+                core.debug(messages_1.Messages.referenceVersionParsed(referenceVersion.raw));
+            }
+            let increased = false;
+            core.debug(messages_1.Messages.startLabelSearch);
+            for (const label of this.pullRequest.labels) {
+                const index = labels.indexOf(label.name);
+                if (index !== -1) {
+                    if (increased) {
+                        throw new errors_1.WorkflowFails(messages_1.Messages.multipleLabelsFound, this.settings.comment.need);
+                    }
+                    core.debug(messages_1.Messages.labelFound(version_type_1.VersionType[index]));
+                    referenceVersion.increase(version_type_1.VersionType[version_type_1.VersionType[index]]);
+                    increased = true;
+                }
+            }
+            if (!increased) {
+                throw new errors_1.WorkflowFails(messages_1.Messages.noLabelsFound(labels), this.settings.comment.need);
+            }
+            core.setOutput('version', referenceVersion.raw);
+            core.setOutput('has_changed', increased);
+            if (referenceVersion.raw === localVersion.raw) {
+                core.info(messages_1.Messages.versionAlreadyUpdated);
+                return {
+                    [action_outputs_1.ActionOutputs.version]: referenceVersion.raw,
+                    [action_outputs_1.ActionOutputs.hasChanged]: false
+                };
+            }
+            core.debug(messages_1.Messages.savingNewVersion(this.settings.filePath, referenceVersion.raw));
+            this.fileHandler.set(this.settings.lookForKey, referenceVersion.raw);
+            this.fileHandler.saveToFile(this.settings.filePath);
+            yield this.commitVersion(this.pullRequest.head.ref, localVersion, referenceVersion);
+            yield this.commentPullRequest(this.settings.comment.message
+                .replace(messages_1.OLD_TAG, localVersion.raw)
+                .replace(messages_1.NEW_TAG, referenceVersion.raw));
+            return {
+                [action_outputs_1.ActionOutputs.version]: referenceVersion.raw,
+                [action_outputs_1.ActionOutputs.hasChanged]: true
+            };
+        });
+    }
+    commentPullRequest(message) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.settings.comment.need) {
+                return;
+            }
+            yield this.githubService.createComment(this.pullRequest.number, message);
+        });
+    }
+}
+exports["default"] = PullRequestHandler;
+
+
+/***/ }),
+
 /***/ 6617:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -10135,6 +10114,38 @@ YamlHandler.EVERYTHING_REGEX = `([\\S\\s]*?)`;
 
 /***/ }),
 
+/***/ 190:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ActionOutputs = void 0;
+var ActionOutputs;
+(function (ActionOutputs) {
+    ActionOutputs["version"] = "version";
+    ActionOutputs["hasChanged"] = "has_changed";
+})(ActionOutputs = exports.ActionOutputs || (exports.ActionOutputs = {}));
+
+
+/***/ }),
+
+/***/ 5560:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.EventType = void 0;
+var EventType;
+(function (EventType) {
+    EventType["PullRequest"] = "pull_request";
+    EventType["Push"] = "push";
+})(EventType = exports.EventType || (exports.EventType = {}));
+
+
+/***/ }),
+
 /***/ 8519:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -10252,16 +10263,191 @@ var VersionType;
 
 /***/ }),
 
+/***/ 4991:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core = __importStar(__nccwpck_require__(2186));
+const github = __importStar(__nccwpck_require__(5438));
+const helper = __importStar(__nccwpck_require__(4862));
+const fs_1 = __nccwpck_require__(7147);
+class GithubService {
+    constructor() {
+        this.octokit = helper.getOctokitAuth();
+    }
+    /**
+     * Create a comment on the pull request.
+     */
+    createComment(issueNumber, message) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.octokit.rest.issues.createComment({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                issue_number: issueNumber,
+                body: message
+            });
+        });
+    }
+    /**
+     * Retrieve content from a repository branch.
+     * Can throw an ReferenceError if the branch or the file in the branch doesn't
+     * exist.
+     */
+    getFileContentForBranch(file_path, branch_name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const branch_exist = yield this.octokit.rest.repos.getBranch({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                branch: branch_name
+            });
+            if (branch_exist.status !== 200) {
+                throw new ReferenceError(`Reference branch ${branch_name} not found`);
+            }
+            core.debug(`Reference version will be searched in ${branch_name} branch`);
+            const reference_file_response = yield this.octokit.rest.repos.getContent({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                path: file_path,
+                ref: branch_name
+            });
+            if (reference_file_response.status !== 200) {
+                throw new ReferenceError(`File ${file_path} in branch ${branch_name} not found`);
+            }
+            return reference_file_response.data;
+        });
+    }
+    getRepoTags() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const tags_list_response = yield this.octokit.rest.repos.listTags({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo
+            });
+            if (tags_list_response.status !== 200) {
+                throw new Error(`${JSON.stringify(tags_list_response.data)}`);
+            }
+            return tags_list_response.data;
+        });
+    }
+    commitFile(file_path, commit_message, committer, branch_name, author) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!(0, fs_1.existsSync)(file_path)) {
+                throw new Error(`${file_path} doesn't exists.`);
+            }
+            const file_content = (0, fs_1.readFileSync)(file_path, 'utf8');
+            core.info('Start commit process');
+            const blob = yield this.octokit.rest.git.createBlob({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                content: file_content,
+                encoding: 'utf8'
+            });
+            const current_commit = (yield this.octokit.request(`GET /repos/${github.context.repo.owner}/${github.context.repo.repo}/commits/${branch_name}`)).data;
+            core.debug(`Last commit: ${current_commit.sha}`);
+            const tree = yield this.octokit.rest.git.createTree({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                tree: [
+                    {
+                        path: file_path,
+                        mode: `100644`,
+                        type: `blob`,
+                        sha: blob.data.sha
+                    }
+                ],
+                base_tree: yield this.getTreeShaForCommit(current_commit.sha)
+            });
+            if (author === undefined) {
+                author = {
+                    name: github.context.actor,
+                    email: `${github.context.actor}@users.noreply.github.com`
+                };
+            }
+            const commit = yield this.octokit.rest.git.createCommit({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                message: commit_message,
+                tree: tree.data.sha,
+                parents: [current_commit.sha],
+                committer,
+                author
+            });
+            core.debug(`New commit created, sha: ${commit.data.sha}`);
+            yield this.octokit.rest.git.updateRef({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                ref: `heads/${branch_name}`,
+                sha: commit.data.sha
+            });
+            core.info(`Commit pushed! (sha: ${commit.data.sha})`);
+        });
+    }
+    getTreeShaForCommit(sha) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { data: commit_data } = yield this.octokit.rest.git.getCommit({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                commit_sha: sha
+            });
+            return commit_data.tree.sha;
+        });
+    }
+}
+exports["default"] = GithubService;
+
+
+/***/ }),
+
 /***/ 2579:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.NotFoundError = void 0;
+exports.WorkflowFails = exports.NotFoundError = void 0;
 class NotFoundError extends Error {
 }
 exports.NotFoundError = NotFoundError;
+class WorkflowFails extends Error {
+    constructor(message, comment = false) {
+        super(message);
+        this.comment = comment;
+    }
+}
+exports.WorkflowFails = WorkflowFails;
 
 
 /***/ }),
@@ -10314,14 +10500,16 @@ function getSettings() {
             major: core.getInput('major_label')
         },
         comment: {
-            comment: core.getBooleanInput('comment'),
+            need: core.getBooleanInput('comment'),
             message: core.getInput('comment_message')
         },
         commit: {
-            commit: core.getBooleanInput('commit'),
+            need: core.getBooleanInput('commit'),
             message: core.getInput('commit_message'),
-            username: core.getInput('commit_user_name'),
-            email: core.getInput('commit_user_email')
+            committer: {
+                name: core.getInput('commit_user_name'),
+                email: core.getInput('commit_user_email')
+            }
         },
         filePath: core.getInput('file_path'),
         lookForKey: core.getInput('look_for_key'),

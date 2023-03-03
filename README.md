@@ -1,4 +1,4 @@
-<p align="center">
+<p>
   <a href="https://github.com/apomalyn/bump-version-using-labels/actions/workflows/build.yml"><img alt="typescript-action status" src="https://github.com/apomalyn/bump-version-using-labels/actions/workflows/build.yml/badge.svg"></a>
   <a href="https://github.com/apomalyn/bump-version-using-labels/actions/workflows/test.yml"><img alt="typescript-action status" src="https://github.com/apomalyn/bump-version-using-labels/actions/workflows/test.yml/badge.svg"></a>
 </p>
@@ -86,6 +86,7 @@ This will update the `package.json` file and comment the PR after each update.
 
 ## Outputs
 
-|   Output  |             Description |
-|:---------:|------------------------|
-| `version` | Current/updated version |
+|    Output     | Description                                               |
+|:-------------:|-----------------------------------------------------------|
+|   `version`   | Current/updated version                                   |
+| `has_changed` | Boolean that indicate if the version have changed or not. |
