@@ -19,7 +19,7 @@ jobs:
           npm run all
       - name: Commit the dist directory.
         if: ${{ github.event_name == 'pull_request' }}
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
           file_pattern: "dist/*"
           commit_user_name: github-actions[bot]
